@@ -6,52 +6,26 @@
     <title>Inventario & Compras</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        /* ==========================================
-           SISTEMA DE DISEÑO Y VARIABLES
-           ========================================== */
         :root {
             --rojo-cereza: #D2042D;
-            --rojo-cereza-hover: #b00325;
-            --bg-base: #000000; /* OLED Black */
+            --bg-base: #000000;
             --text-primary: #F8FAFC;
             --text-secondary: #94A3B8;
-            --glass-bg: rgba(15, 23, 42, 0.65); /* Deep Navy */
+            --glass-bg: rgba(15, 23, 42, 0.65);
             --glass-border: rgba(255, 255, 255, 0.08);
             --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
 
-        @media (prefers-color-scheme: light) {
-            :root {
-                --bg-base: #F1F5F9;
-                --text-primary: #0F172A;
-                --text-secondary: #475569;
-                --glass-bg: rgba(255, 255, 255, 0.7);
-                --glass-border: rgba(0, 0, 0, 0.05);
-            }
-        }
-
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 
-        body {
-            background-color: var(--bg-base);
-            color: var(--text-primary);
-            padding: 16px;
-            padding-bottom: 90px;
-        }
+        body { background-color: var(--bg-base); color: var(--text-primary); padding: 16px; padding-bottom: 90px; }
 
-        /* Glassmorphism Classes */
         .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
+            background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border); border-radius: 16px; padding: 16px; margin-bottom: 12px;
             box-shadow: var(--glass-shadow);
         }
 
-        /* Navegación y Vistas */
         .view { display: none; animation: fadeIn 0.3s; }
         .view.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -59,35 +33,12 @@
         h1 { font-size: 1.8rem; margin-bottom: 4px; }
         .subtitle { color: var(--text-secondary); margin-bottom: 24px; font-size: 0.9rem; }
 
-        /* Sugerencias Inteligentes (Chip UI) */
         .suggestions-container { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 12px; scrollbar-width: none; }
-        .chip {
-            background: rgba(210, 4, 45, 0.15);
-            border: 1px solid var(--rojo-cereza);
-            color: #ffb3b3;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            white-space: nowrap;
-            display: flex; align-items: center; gap: 6px;
-        }
+        .chip { background: rgba(210, 4, 45, 0.15); border: 1px solid var(--rojo-cereza); color: #ffb3b3; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; white-space: nowrap; }
 
-        /* Botones y UI */
-        .btn-primary {
-            background: var(--rojo-cereza); color: white;
-            border: none; padding: 12px 24px; border-radius: 12px;
-            font-weight: 600; width: 100%; font-size: 1rem; cursor: pointer;
-        }
-        
-        .fab {
-            position: fixed; bottom: 24px; right: 24px;
-            background-color: var(--rojo-cereza); color: white;
-            border: none; border-radius: 28px; height: 56px; padding: 0 24px;
-            font-size: 1rem; font-weight: bold; box-shadow: 0 8px 24px rgba(210, 4, 45, 0.4);
-            z-index: 1000;
-        }
+        .btn-primary { background: var(--rojo-cereza); color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 600; width: 100%; font-size: 1rem; cursor: pointer; }
+        .fab { position: fixed; bottom: 24px; right: 24px; background-color: var(--rojo-cereza); color: white; border: none; border-radius: 28px; height: 56px; padding: 0 24px; font-size: 1rem; font-weight: bold; z-index: 1000; box-shadow: 0 8px 24px rgba(210, 4, 45, 0.4); }
 
-        /* Modo Supermercado UI */
         .item-header { display: flex; align-items: center; justify-content: space-between; }
         .item-info { flex-grow: 1; margin-left: 16px; }
         input[type="checkbox"] { width: 48px; height: 48px; accent-color: var(--rojo-cereza); border-radius: 8px; }
@@ -97,68 +48,120 @@
         .price-input-wrapper { display: flex; align-items: center; background: var(--bg-base); border-radius: 8px; padding: 0 8px; border: 1px solid var(--glass-border); }
         input[type="number"] { background: transparent; border: none; color: white; font-size: 1.2rem; padding: 12px; width: 90px; outline: none; }
 
-        /* Sync Status */
         #sync-status { position: fixed; top: 0; left: 0; right: 0; background: var(--glass-bg); backdrop-filter: blur(10px); text-align: center; padding: 6px; font-size: 0.8rem; color: var(--text-secondary); z-index: 1000; border-bottom: 1px solid var(--glass-border); }
+        input[type="text"], select { width: 100%; padding: 10px; margin-bottom: 8px; background: var(--bg-base); border: 1px solid var(--glass-border); color: white; border-radius: 8px; }
     </style>
 </head>
 <body>
 
-    <div id="sync-status">Conectado (Sistema Local)</div>
+    <div id="sync-status">Conectando...</div>
 
+    <!-- MÓDULO A: DASHBOARD -->
     <div id="view-dashboard" class="view active">
         <div style="margin-top: 30px;">
             <h1>Mi Inventario</h1>
             <p class="subtitle">Estado actual del hogar</p>
         </div>
 
-        <h3 style="margin-bottom: 12px; font-size: 1rem; color: var(--text-secondary);">Sugerencias (Nivel Bajo)</h3>
-        <div id="sugerencias-container" class="suggestions-container">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+            <div class="glass-card" style="text-align: center; padding: 20px 10px; cursor:pointer;" onclick="abrirModuloListas()">
+                <div style="font-size: 1.5rem; margin-bottom: 8px;">📝</div>
+                <div style="font-weight: 600; font-size: 0.9rem;">Planificar Lista</div>
             </div>
+            <div class="glass-card" style="text-align: center; padding: 20px 10px; cursor:pointer;" onclick="abrirModuloCatalogo()">
+                <div style="font-size: 1.5rem; margin-bottom: 8px;">📦</div>
+                <div style="font-weight: 600; font-size: 0.9rem;">Catálogo Maestro</div>
+            </div>
+        </div>
+
+        <h3 style="margin-bottom: 12px; font-size: 1rem; color: var(--text-secondary);">Sugerencias (Nivel Bajo)</h3>
+        <div id="sugerencias-container" class="suggestions-container"></div>
 
         <div class="glass-card" style="margin-top: 16px;">
-            <h3 style="margin-bottom: 8px;">Listas Activas</h3>
-            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;">Tienes 1 lista en progreso.</p>
+            <h3 style="margin-bottom: 8px;">Lista Activa</h3>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;">Tienes artículos pendientes.</p>
             <button class="btn-primary" onclick="cambiarVista('view-supermercado')">Ir al Supermercado →</button>
         </div>
     </div>
 
+    <!-- MÓDULO A.1: CATÁLOGO -->
+    <div id="view-catalogo" class="view">
+        <div style="margin-top: 30px; margin-bottom: 20px;">
+            <button onclick="cambiarVista('view-dashboard')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
+            <h1>Catálogo Maestro</h1>
+        </div>
+        <div class="glass-card" style="margin-bottom: 24px;">
+            <h3 style="margin-bottom: 12px;">Nuevo Artículo</h3>
+            <input type="text" id="cat-nombre" placeholder="Nombre (ej. Arroz San Pedro)">
+            <select id="cat-categoria">
+                <option value="Abarrotes">Abarrotes</option>
+                <option value="Lácteos">Lácteos</option>
+                <option value="Carnes">Carnes</option>
+                <option value="Limpieza">Limpieza</option>
+            </select>
+            <button class="btn-primary" onclick="guardarNuevoArticulo()">Guardar en Catálogo</button>
+        </div>
+        <h3 style="margin-bottom: 12px;">Artículos Registrados</h3>
+        <div id="lista-catalogo-container"></div>
+    </div>
+
+    <!-- MÓDULO A.2: NUEVA LISTA -->
+    <div id="view-nueva-lista" class="view">
+        <div style="margin-top: 30px; margin-bottom: 20px;">
+            <button onclick="cambiarVista('view-dashboard')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
+            <h1>Planificar Compra</h1>
+        </div>
+        <div class="glass-card">
+            <h3 style="margin-bottom: 12px;">Detalles de la Lista</h3>
+            <input type="text" id="lista-nombre" placeholder="Nombre (ej. Quincena Noviembre)">
+            <h3 style="margin-bottom: 12px; font-size: 1rem;">Selecciona los artículos:</h3>
+            <div id="seleccion-articulos-container" style="max-height: 300px; overflow-y: auto; margin-bottom:16px;"></div>
+            <button class="btn-primary" onclick="crearNuevaLista()">Generar Lista Activa</button>
+        </div>
+    </div>
+
+    <!-- MÓDULO B: SUPERMERCADO -->
     <div id="view-supermercado" class="view">
         <div style="margin-top: 30px; margin-bottom: 20px;">
+            <button onclick="cambiarVista('view-dashboard')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
             <h1>Supermercado</h1>
             <p class="subtitle"><span id="items-count">0</span> artículos pendientes</p>
         </div>
-
-        <div id="checklist-container">
-            </div>
-
+        <div id="checklist-container"></div>
         <button class="fab" onclick="concluirCompra()">Concluir Compra</button>
     </div>
 
     <script>
-        // Registrar Service Worker para PWA (Offline)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Falló: ', err));
-            });
-        }
+        // CONFIGURACIÓN DE CONEXIÓN
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbye_QUMDHP4_hZyaNl0BImJUkl4FhYJXqwQPDQQxEqaQjzT8mLEi_-oUi0RoCia9Qan/exec'; // <--- PEGA TU URL AQUÍ
+        const API_TOKEN = 'Creaciones_960106$';       // <--- TU TOKEN
 
-        // Mock de datos extraídos de GAS (En producción se obtiene vía fetch al doGet en el INIT)
-        const mockInventario = [
-            { id: 'ART-001', nombre: 'Leche Deslactosada', cant: 1, nivel: 'Bajo' },
-            { id: 'ART-002', nombre: 'Café de Especialidad', cant: 0, nivel: 'Bajo' },
-            { id: 'ART-003', nombre: 'Jabón Líquido', cant: 3, nivel: 'Mediano' }
-        ];
-
-        const mockDetalleLista = [
-            { id: 'ART-001', id_lista: 'LST-01', nombre: 'Leche Deslactosada', cant_planificada: 4, comprado: false, precio_hist: 1.45 },
-            { id: 'ART-002', id_lista: 'LST-01', nombre: 'Café de Especialidad', cant_planificada: 2, comprado: false, precio_hist: 8.50 }
-        ];
-
+        let dbCatalogo = [], dbInventario = [], dbDetalleLista = [];
         let syncQueue = JSON.parse(localStorage.getItem('syncQueue')) || [];
 
-        function initApp() {
-            renderSugerencias();
-            renderChecklist();
+        // INICIALIZACIÓN
+        async function initApp() {
+            document.getElementById('sync-status').innerText = "Sincronizando con Google Sheets...";
+            try {
+                const response = await fetch(`${GAS_URL}?token=${API_TOKEN}`);
+                const data = await response.json();
+                if (data.status === 'success') {
+                    dbCatalogo = data.catalogo || [];
+                    dbInventario = data.inventario || [];
+                    dbDetalleLista = data.detalle_lista || [];
+                    document.getElementById('sync-status').innerText = "Conectado (Sistema Sincronizado) ✔";
+                } else {
+                    document.getElementById('sync-status').innerText = "Error: Acceso Denegado ⚠";
+                }
+            } catch (error) {
+                document.getElementById('sync-status').innerText = "Modo Offline (Sin red) ⚠";
+            }
+            renderSugerencias(); renderChecklist();
+        }
+
+        function getNombreArticulo(idArticulo) {
+            const articulo = dbCatalogo.find(item => item.ID_Articulo === idArticulo);
+            return articulo ? articulo.Nombre_Articulo : 'Articulo Desconocido';
         }
 
         function cambiarVista(idVista) {
@@ -167,120 +170,144 @@
             window.scrollTo(0,0);
         }
 
-        // --- MÓDULO A: Lógica de Inventario Inteligente ---
+        // CONTROLADORES DASHBOARD Y SUGERENCIAS
         function renderSugerencias() {
             const container = document.getElementById('sugerencias-container');
-            const sugerencias = mockInventario.filter(item => item.nivel === 'Bajo');
-            
-            if(sugerencias.length === 0) {
-                container.innerHTML = '<span style="color: var(--text-secondary); font-size: 0.9rem;">Todo en orden.</span>';
-                return;
-            }
-
-            container.innerHTML = sugerencias.map(item => `
-                <div class="chip">
-                    ⚠ ${item.nombre}
-                </div>
-            `).join('');
+            const sugerencias = dbInventario.filter(item => item.Nivel_Cualitativo === 'Bajo');
+            if(sugerencias.length === 0) return container.innerHTML = '<span style="color: var(--text-secondary); font-size: 0.9rem;">Todo en orden.</span>';
+            container.innerHTML = sugerencias.map(item => `<div class="chip">⚠ ${getNombreArticulo(item.ID_Articulo)}</div>`).join('');
         }
 
-        // --- MÓDULO B: Lógica de Supermercado ---
+        // CONTROLADORES CATÁLOGO
+        function abrirModuloCatalogo() {
+            const container = document.getElementById('lista-catalogo-container');
+            container.innerHTML = dbCatalogo.map(item => `
+                <div style="padding: 12px; border-bottom: 1px solid var(--glass-border);">
+                    <strong>${item.Nombre_Articulo}</strong> <span style="font-size:0.8rem; color:var(--text-secondary)">(${item.Categoria})</span>
+                </div>
+            `).join('');
+            cambiarVista('view-catalogo');
+        }
+
+        async function guardarNuevoArticulo() {
+            const nombre = document.getElementById('cat-nombre').value;
+            const categoria = document.getElementById('cat-categoria').value;
+            if (!nombre) return alert("Ingresa un nombre.");
+            
+            const payload = [{ ID_Articulo: 'ART-' + Date.now(), Nombre_Articulo: nombre, Categoria: categoria, Unidad_Medida: 'Unidad', Estado_Activo: true }];
+            document.getElementById('cat-nombre').value = '';
+            document.getElementById('sync-status').innerText = "Guardando Catálogo...";
+            
+            dbCatalogo.push(payload[0]);
+            abrirModuloCatalogo();
+
+            try {
+                await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'crear_articulo', data: payload, token: API_TOKEN }) });
+                document.getElementById('sync-status').innerText = "Catálogo Actualizado ✔";
+                setTimeout(() => document.getElementById('sync-status').innerText = "Conectado", 2000);
+            } catch(e) { document.getElementById('sync-status').innerText = "Guardado Localmente ⚠"; }
+        }
+
+        // CONTROLADORES LISTAS
+        function abrirModuloListas() {
+            const container = document.getElementById('seleccion-articulos-container');
+            container.innerHTML = dbCatalogo.map(item => `
+                <div style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" class="chk-nueva-lista" value="${item.ID_Articulo}"> <span>${item.Nombre_Articulo}</span>
+                </div>
+            `).join('');
+            cambiarVista('view-nueva-lista');
+        }
+
+        async function crearNuevaLista() {
+            const nombreLista = document.getElementById('lista-nombre').value || 'Nueva Lista';
+            const checkboxes = document.querySelectorAll('.chk-nueva-lista:checked');
+            if (checkboxes.length === 0) return alert("Selecciona al menos un artículo.");
+
+            const nuevoIdLista = 'LST-' + Date.now();
+            let nuevosDetalles = Array.from(checkboxes).map(chk => ({
+                ID_Detalle: 'DET-' + Date.now() + Math.floor(Math.random() * 100),
+                ID_Lista: nuevoIdLista, ID_Articulo: chk.value, Cantidad_Planificada: 1, Comprado: false, Precio_Registrado: 0
+            }));
+
+            dbDetalleLista.push(...nuevosDetalles);
+            document.getElementById('sync-status').innerText = "Generando Lista...";
+            cambiarVista('view-dashboard'); renderChecklist();
+
+            try {
+                await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'crear_lista', data: nuevosDetalles, nombre: nombreLista, token: API_TOKEN }) });
+                document.getElementById('sync-status').innerText = "Lista Guardada ✔";
+                setTimeout(() => document.getElementById('sync-status').innerText = "Conectado", 2000);
+            } catch(e) { document.getElementById('sync-status').innerText = "Lista Creada Localmente ⚠"; }
+        }
+
+        // CONTROLADORES SUPERMERCADO
         function renderChecklist() {
             const container = document.getElementById('checklist-container');
-            document.getElementById('items-count').innerText = mockDetalleLista.length;
+            const pendientes = dbDetalleLista.filter(item => !item.Comprado);
+            document.getElementById('items-count').innerText = pendientes.length;
+            if (pendientes.length === 0) return container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-secondary);">No hay artículos pendientes.</div>';
 
-            container.innerHTML = mockDetalleLista.map((item, index) => `
-                <div class="glass-card ${item.comprado ? 'comprado' : ''}" id="card-${item.id}">
+            container.innerHTML = pendientes.map(item => `
+                <div class="glass-card" id="card-${item.ID_Articulo}">
                     <div class="item-header">
-                        <input type="checkbox" id="chk-${item.id}" onchange="toggleComprado('${item.id}', ${index})" ${item.comprado ? 'checked' : ''}>
+                        <input type="checkbox" id="chk-${item.ID_Articulo}" onchange="toggleComprado('${item.ID_Articulo}')">
                         <div class="item-info">
-                            <div style="font-weight: 600; font-size: 1.1rem;">${item.nombre}</div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${item.cant_planificada} unidades sugeridas</div>
+                            <div style="font-weight: 600; font-size: 1.1rem;">${getNombreArticulo(item.ID_Articulo)}</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${item.Cantidad_Planificada} unidades requeridas</div>
                         </div>
                     </div>
-                    <div class="price-controls">
-                        <div class="price-input-wrapper">
-                            <span style="color:var(--text-secondary)">$</span>
-                            <input type="number" step="0.01" id="precio-${item.id}" placeholder="0.00" onblur="guardarPrecio('${item.id}', ${index})">
-                        </div>
-                        <div style="font-size: 0.8rem; text-align: right; color: var(--text-secondary);">
-                            Histórico: $${item.precio_hist.toFixed(2)}<br>
-                            <span id="tendencia-${item.id}">-</span>
-                        </div>
+                    <div class="price-controls" id="price-ctrl-${item.ID_Articulo}">
+                        <div class="price-input-wrapper"><span style="color:var(--text-secondary)">$</span><input type="number" step="0.01" id="precio-${item.ID_Articulo}" placeholder="0.00"></div>
                     </div>
                 </div>
             `).join('');
         }
 
-        function toggleComprado(id, index) {
-            const card = document.getElementById(`card-${id}`);
-            const isChecked = document.getElementById(`chk-${id}`).checked;
-            mockDetalleLista[index].comprado = isChecked;
+        function toggleComprado(idArticulo) {
+            const card = document.getElementById(`card-${idArticulo}`);
+            const isChecked = document.getElementById(`chk-${idArticulo}`).checked;
+            const itemIndex = dbDetalleLista.findIndex(i => i.ID_Articulo === idArticulo);
+            if (itemIndex > -1) dbDetalleLista[itemIndex].Comprado = isChecked;
 
             if (isChecked) {
                 card.classList.add('comprado');
-                setTimeout(() => document.getElementById(`precio-${id}`).focus(), 50); // Usabilidad One-Handed
+                document.getElementById(`price-ctrl-${idArticulo}`).style.display = 'flex';
+                setTimeout(() => document.getElementById(`precio-${idArticulo}`).focus(), 50); 
             } else {
                 card.classList.remove('comprado');
+                document.getElementById(`price-ctrl-${idArticulo}`).style.display = 'none';
+                document.getElementById(`precio-${idArticulo}`).value = '';
             }
         }
 
-        function guardarPrecio(id, index) {
-            const val = document.getElementById(`precio-${id}`).value;
-            if(!val) return;
-
-            const precioActual = parseFloat(val);
-            mockDetalleLista[index].precio_actual = precioActual;
-            
-            const item = mockDetalleLista[index];
-            const spanTendencia = document.getElementById(`tendencia-${id}`);
-            
-            if(precioActual > item.precio_hist) spanTendencia.innerHTML = '<span style="color:var(--rojo-cereza)">▲ Subió</span>';
-            else if(precioActual < item.precio_hist) spanTendencia.innerHTML = '<span style="color:#10B981">▼ Bajó</span>';
-            else spanTendencia.innerText = 'Igual';
-        }
-
-        // --- MÓDULO C: Sincronización Batch y Relacional ---
         async function concluirCompra() {
-            const itemsProcesar = mockDetalleLista.filter(i => i.comprado && i.precio_actual);
-            if (itemsProcesar.length === 0) return alert("Selecciona y pon precio a los artículos.");
+            const itemsProcesar = dbDetalleLista.filter(item => {
+                const chk = document.getElementById(`chk-${item.ID_Articulo}`);
+                const inputPrecio = document.getElementById(`precio-${item.ID_Articulo}`);
+                if (chk && chk.checked && inputPrecio && inputPrecio.value) {
+                    item.precio_actual = parseFloat(inputPrecio.value); return true;
+                } return false;
+            });
+            if (itemsProcesar.length === 0) return alert("No hay artículos marcados con precio registrado.");
 
-            const payloadData = itemsProcesar.map(item => ({
-                id_articulo: item.id,
-                id_lista: item.id_lista,
-                cantidad: item.cant_planificada,
-                precio: item.precio_actual
-            }));
-
-            // UI Optimista
-            document.getElementById('checklist-container').innerHTML = '<div style="padding: 40px; text-align: center;">Procesando compra de forma segura...</div>';
-            document.getElementById('sync-status').innerText = "Sincronizando Sheets...";
+            const payloadData = itemsProcesar.map(item => ({ id_articulo: item.ID_Articulo, id_lista: item.ID_Lista, cantidad: item.Cantidad_Planificada, precio: item.precio_actual }));
+            document.getElementById('checklist-container').innerHTML = '<div style="padding: 40px; text-align: center;">Procesando transacción en bloque...</div>';
+            document.getElementById('sync-status').innerText = "Guardando en Sheets...";
 
             try {
-                // Fetch al backend GAS con Headers seguros si el entorno lo permite, o Payload
-                const response = await fetch('https://script.google.com/macros/s/AKfycbye_QUMDHP4_hZyaNl0BImJUkl4FhYJXqwQPDQQxEqaQjzT8mLEi_-oUi0RoCia9Qan/exe', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain', 'X-API-KEY': 'Creaciones_960106$' },
-                    body: JSON.stringify({ action: 'sincronizar_compra_batch', data: payloadData, token: 'Creaciones_960106$' })
-                });
-
-                // Simulación para efecto visual
+                await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'sincronizar_compra_batch', data: payloadData, token: API_TOKEN }) });
                 setTimeout(() => {
-                    document.getElementById('sync-status').innerText = "BD Actualizada Correctamente ✔";
-                    setTimeout(() => { 
-                        document.getElementById('sync-status').innerText = "Conectado";
-                        cambiarVista('view-dashboard');
-                    }, 2000);
+                    document.getElementById('sync-status').innerText = "BD Actualizada ✔";
+                    setTimeout(() => { cambiarVista('view-dashboard'); initApp(); }, 2000);
                 }, 1000);
-
             } catch (error) {
-                syncQueue.push(...payloadData);
-                localStorage.setItem('syncQueue', JSON.stringify(syncQueue));
-                document.getElementById('sync-status').innerText = "Guardado Localmente (Offline) ⚠";
-                cambiarVista('view-dashboard');
+                syncQueue.push(...payloadData); localStorage.setItem('syncQueue', JSON.stringify(syncQueue));
+                document.getElementById('sync-status').innerText = "Guardado Localmente ⚠"; cambiarVista('view-dashboard');
             }
         }
 
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW Falló:', e))); }
         window.onload = initApp;
     </script>
 </body>
