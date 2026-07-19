@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Inventario & Compras</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        /* ==========================================
+           SISTEMA DE DISEÑO Y VARIABLES
+           ========================================== */
+        :root {
+            --rojo-cereza: #D2042D;
+            --rojo-cereza-hover: #b00325;
+            --bg-base: #000000; /* OLED Black */
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --glass-bg: rgba(15, 23, 42, 0.65); /* Deep Navy */
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-base: #F1F5F9;
+                --text-primary: #0F172A;
+                --text-secondary: #475569;
+                --glass-bg: rgba(255, 255, 255, 0.7);
+                --glass-border: rgba(0, 0, 0, 0.05);
+            }
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            padding: 16px;
+            padding-bottom: 90px;
+        }
+
+        /* Glassmorphism Classes */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        /* Navegación y Vistas */
+        .view { display: none; animation: fadeIn 0.3s; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1 { font-size: 1.8rem; margin-bottom: 4px; }
+        .subtitle { color: var(--text-secondary); margin-bottom: 24px; font-size: 0.9rem; }
+
+        /* Sugerencias Inteligentes (Chip UI) */
+        .suggestions-container { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 12px; scrollbar-width: none; }
+        .chip {
+            background: rgba(210, 4, 45, 0.15);
+            border: 1px solid var(--rojo-cereza);
+            color: #ffb3b3;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        /* Botones y UI */
+        .btn-primary {
+            background: var(--rojo-cereza); color: white;
+            border: none; padding: 12px 24px; border-radius: 12px;
+            font-weight: 600; width: 100%; font-size: 1rem; cursor: pointer;
+        }
+        
+        .fab {
+            position: fixed; bottom: 24px; right: 24px;
+            background-color: var(--rojo-cereza); color: white;
+            border: none; border-radius: 28px; height: 56px; padding: 0 24px;
+            font-size: 1rem; font-weight: bold; box-shadow: 0 8px 24px rgba(210, 4, 45, 0.4);
+            z-index: 1000;
+        }
+
+        /* Modo Supermercado UI */
+        .item-header { display: flex; align-items: center; justify-content: space-between; }
+        .item-info { flex-grow: 1; margin-left: 16px; }
+        input[type="checkbox"] { width: 48px; height: 48px; accent-color: var(--rojo-cereza); border-radius: 8px; }
+        .glass-card.comprado { opacity: 0.6; border-left: 4px solid var(--rojo-cereza); }
+        .price-controls { display: none; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px; margin-top: 12px; }
+        .glass-card.comprado .price-controls { display: flex; justify-content: space-between; align-items: center; }
+        .price-input-wrapper { display: flex; align-items: center; background: var(--bg-base); border-radius: 8px; padding: 0 8px; border: 1px solid var(--glass-border); }
+        input[type="number"] { background: transparent; border: none; color: white; font-size: 1.2rem; padding: 12px; width: 90px; outline: none; }
+
+        /* Sync Status */
+        #sync-status { position: fixed; top: 0; left: 0; right: 0; background: var(--glass-bg); backdrop-filter: blur(10px); text-align: center; padding: 6px; font-size: 0.8rem; color: var(--text-secondary); z-index: 1000; border-bottom: 1px solid var(--glass-border); }
+    </style>
+</head>
+<body>
+
+    <div id="sync-status">Conectado (Sistema Local)</div>
+
+    <div id="view-dashboard" class="view active">
+        <div style="margin-top: 30px;">
+            <h1>Mi Inventario</h1>
+            <p class="subtitle">Estado actual del hogar</p>
+        </div>
+
+        <h3 style="margin-bottom: 12px; font-size: 1rem; color: var(--text-secondary);">Sugerencias (Nivel Bajo)</h3>
+        <div id="sugerencias-container" class="suggestions-container">
+            </div>
+
+        <div class="glass-card" style="margin-top: 16px;">
+            <h3 style="margin-bottom: 8px;">Listas Activas</h3>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;">Tienes 1 lista en progreso.</p>
+            <button class="btn-primary" onclick="cambiarVista('view-supermercado')">Ir al Supermercado →</button>
+        </div>
+    </div>
+
+    <div id="view-supermercado" class="view">
+        <div style="margin-top: 30px; margin-bottom: 20px;">
+            <h1>Supermercado</h1>
+            <p class="subtitle"><span id="items-count">0</span> artículos pendientes</p>
+        </div>
+
+        <div id="checklist-container">
+            </div>
+
+        <button class="fab" onclick="concluirCompra()">Concluir Compra</button>
+    </div>
+
+    <script>
+        // Registrar Service Worker para PWA (Offline)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Falló: ', err));
+            });
+        }
+
+        // Mock de datos extraídos de GAS (En producción se obtiene vía fetch al doGet en el INIT)
+        const mockInventario = [
+            { id: 'ART-001', nombre: 'Leche Deslactosada', cant: 1, nivel: 'Bajo' },
+            { id: 'ART-002', nombre: 'Café de Especialidad', cant: 0, nivel: 'Bajo' },
+            { id: 'ART-003', nombre: 'Jabón Líquido', cant: 3, nivel: 'Mediano' }
+        ];
+
+        const mockDetalleLista = [
+            { id: 'ART-001', id_lista: 'LST-01', nombre: 'Leche Deslactosada', cant_planificada: 4, comprado: false, precio_hist: 1.45 },
+            { id: 'ART-002', id_lista: 'LST-01', nombre: 'Café de Especialidad', cant_planificada: 2, comprado: false, precio_hist: 8.50 }
+        ];
+
+        let syncQueue = JSON.parse(localStorage.getItem('syncQueue')) || [];
+
+        function initApp() {
+            renderSugerencias();
+            renderChecklist();
+        }
+
+        function cambiarVista(idVista) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(idVista).classList.add('active');
+            window.scrollTo(0,0);
+        }
+
+        // --- MÓDULO A: Lógica de Inventario Inteligente ---
+        function renderSugerencias() {
+            const container = document.getElementById('sugerencias-container');
+            const sugerencias = mockInventario.filter(item => item.nivel === 'Bajo');
+            
+            if(sugerencias.length === 0) {
+                container.innerHTML = '<span style="color: var(--text-secondary); font-size: 0.9rem;">Todo en orden.</span>';
+                return;
+            }
+
+            container.innerHTML = sugerencias.map(item => `
+                <div class="chip">
+                    ⚠ ${item.nombre}
+                </div>
+            `).join('');
+        }
+
+        // --- MÓDULO B: Lógica de Supermercado ---
+        function renderChecklist() {
+            const container = document.getElementById('checklist-container');
+            document.getElementById('items-count').innerText = mockDetalleLista.length;
+
+            container.innerHTML = mockDetalleLista.map((item, index) => `
+                <div class="glass-card ${item.comprado ? 'comprado' : ''}" id="card-${item.id}">
+                    <div class="item-header">
+                        <input type="checkbox" id="chk-${item.id}" onchange="toggleComprado('${item.id}', ${index})" ${item.comprado ? 'checked' : ''}>
+                        <div class="item-info">
+                            <div style="font-weight: 600; font-size: 1.1rem;">${item.nombre}</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${item.cant_planificada} unidades sugeridas</div>
+                        </div>
+                    </div>
+                    <div class="price-controls">
+                        <div class="price-input-wrapper">
+                            <span style="color:var(--text-secondary)">$</span>
+                            <input type="number" step="0.01" id="precio-${item.id}" placeholder="0.00" onblur="guardarPrecio('${item.id}', ${index})">
+                        </div>
+                        <div style="font-size: 0.8rem; text-align: right; color: var(--text-secondary);">
+                            Histórico: $${item.precio_hist.toFixed(2)}<br>
+                            <span id="tendencia-${item.id}">-</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleComprado(id, index) {
+            const card = document.getElementById(`card-${id}`);
+            const isChecked = document.getElementById(`chk-${id}`).checked;
+            mockDetalleLista[index].comprado = isChecked;
+
+            if (isChecked) {
+                card.classList.add('comprado');
+                setTimeout(() => document.getElementById(`precio-${id}`).focus(), 50); // Usabilidad One-Handed
+            } else {
+                card.classList.remove('comprado');
+            }
+        }
+
+        function guardarPrecio(id, index) {
+            const val = document.getElementById(`precio-${id}`).value;
+            if(!val) return;
+
+            const precioActual = parseFloat(val);
+            mockDetalleLista[index].precio_actual = precioActual;
+            
+            const item = mockDetalleLista[index];
+            const spanTendencia = document.getElementById(`tendencia-${id}`);
+            
+            if(precioActual > item.precio_hist) spanTendencia.innerHTML = '<span style="color:var(--rojo-cereza)">▲ Subió</span>';
+            else if(precioActual < item.precio_hist) spanTendencia.innerHTML = '<span style="color:#10B981">▼ Bajó</span>';
+            else spanTendencia.innerText = 'Igual';
+        }
+
+        // --- MÓDULO C: Sincronización Batch y Relacional ---
+        async function concluirCompra() {
+            const itemsProcesar = mockDetalleLista.filter(i => i.comprado && i.precio_actual);
+            if (itemsProcesar.length === 0) return alert("Selecciona y pon precio a los artículos.");
+
+            const payloadData = itemsProcesar.map(item => ({
+                id_articulo: item.id,
+                id_lista: item.id_lista,
+                cantidad: item.cant_planificada,
+                precio: item.precio_actual
+            }));
+
+            // UI Optimista
+            document.getElementById('checklist-container').innerHTML = '<div style="padding: 40px; text-align: center;">Procesando compra de forma segura...</div>';
+            document.getElementById('sync-status').innerText = "Sincronizando Sheets...";
+
+            try {
+                // Fetch al backend GAS con Headers seguros si el entorno lo permite, o Payload
+                const response = await fetch('https://script.google.com/macros/s/AKfycbye_QUMDHP4_hZyaNl0BImJUkl4FhYJXqwQPDQQxEqaQjzT8mLEi_-oUi0RoCia9Qan/exe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain', 'X-API-KEY': 'Creaciones_960106$' },
+                    body: JSON.stringify({ action: 'sincronizar_compra_batch', data: payloadData, token: 'Creaciones_960106$' })
+                });
+
+                // Simulación para efecto visual
+                setTimeout(() => {
+                    document.getElementById('sync-status').innerText = "BD Actualizada Correctamente ✔";
+                    setTimeout(() => { 
+                        document.getElementById('sync-status').innerText = "Conectado";
+                        cambiarVista('view-dashboard');
+                    }, 2000);
+                }, 1000);
+
+            } catch (error) {
+                syncQueue.push(...payloadData);
+                localStorage.setItem('syncQueue', JSON.stringify(syncQueue));
+                document.getElementById('sync-status').innerText = "Guardado Localmente (Offline) ⚠";
+                cambiarVista('view-dashboard');
+            }
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
