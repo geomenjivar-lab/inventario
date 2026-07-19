@@ -7,38 +7,22 @@
     <link rel="manifest" href="manifest.json">
     <style>
         :root {
-            --rojo-cereza: #D2042D;
-            --bg-base: #000000;
-            --text-primary: #F8FAFC;
-            --text-secondary: #94A3B8;
-            --glass-bg: rgba(15, 23, 42, 0.65);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            --rojo-cereza: #D2042D; --bg-base: #000000; --text-primary: #F8FAFC; --text-secondary: #94A3B8;
+            --glass-bg: rgba(15, 23, 42, 0.65); --glass-border: rgba(255, 255, 255, 0.08); --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-
         body { background-color: var(--bg-base); color: var(--text-primary); padding: 16px; padding-bottom: 90px; }
-
-        .glass-card {
-            background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border); border-radius: 16px; padding: 16px; margin-bottom: 12px;
-            box-shadow: var(--glass-shadow);
-        }
-
+        .glass-card { background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: var(--glass-shadow); }
         .view { display: none; animation: fadeIn 0.3s; }
         .view.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
         h1 { font-size: 1.8rem; margin-bottom: 4px; }
         .subtitle { color: var(--text-secondary); margin-bottom: 24px; font-size: 0.9rem; }
-
         .suggestions-container { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 12px; scrollbar-width: none; }
         .chip { background: rgba(210, 4, 45, 0.15); border: 1px solid var(--rojo-cereza); color: #ffb3b3; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; white-space: nowrap; }
-
         .btn-primary { background: var(--rojo-cereza); color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 600; width: 100%; font-size: 1rem; cursor: pointer; }
+        .btn-secondary { background: transparent; color: white; border: 1px solid var(--glass-border); padding: 12px; border-radius: 12px; width: 100%; font-size: 0.9rem; margin-top:8px; cursor: pointer;}
         .fab { position: fixed; bottom: 24px; right: 24px; background-color: var(--rojo-cereza); color: white; border: none; border-radius: 28px; height: 56px; padding: 0 24px; font-size: 1rem; font-weight: bold; z-index: 1000; box-shadow: 0 8px 24px rgba(210, 4, 45, 0.4); }
-
         .item-header { display: flex; align-items: center; justify-content: space-between; }
         .item-info { flex-grow: 1; margin-left: 16px; }
         input[type="checkbox"] { width: 48px; height: 48px; accent-color: var(--rojo-cereza); border-radius: 8px; }
@@ -46,10 +30,9 @@
         .price-controls { display: none; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px; margin-top: 12px; }
         .glass-card.comprado .price-controls { display: flex; justify-content: space-between; align-items: center; }
         .price-input-wrapper { display: flex; align-items: center; background: var(--bg-base); border-radius: 8px; padding: 0 8px; border: 1px solid var(--glass-border); }
-        input[type="number"] { background: transparent; border: none; color: white; font-size: 1.2rem; padding: 12px; width: 90px; outline: none; }
-
+        input[type="number"], input[type="text"], select { background: transparent; border: none; color: white; font-size: 1.1rem; padding: 12px; outline: none; width: 100%; }
+        .form-input { background: var(--bg-base); border: 1px solid var(--glass-border); border-radius: 8px; margin-bottom: 12px; }
         #sync-status { position: fixed; top: 0; left: 0; right: 0; background: var(--glass-bg); backdrop-filter: blur(10px); text-align: center; padding: 6px; font-size: 0.8rem; color: var(--text-secondary); z-index: 1000; border-bottom: 1px solid var(--glass-border); }
-        input[type="text"], select { width: 100%; padding: 10px; margin-bottom: 8px; background: var(--bg-base); border: 1px solid var(--glass-border); color: white; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -60,67 +43,92 @@
     <div id="view-dashboard" class="view active">
         <div style="margin-top: 30px;">
             <h1>Mi Inventario</h1>
-            <p class="subtitle">Estado actual del hogar</p>
         </div>
-
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
-            <div class="glass-card" style="text-align: center; padding: 20px 10px; cursor:pointer;" onclick="abrirModuloListas()">
+            <div class="glass-card" style="text-align: center; padding: 20px 10px; cursor:pointer;" onclick="cambiarVista('view-nueva-lista'); renderOpcionesDuplicar();">
                 <div style="font-size: 1.5rem; margin-bottom: 8px;">📝</div>
-                <div style="font-weight: 600; font-size: 0.9rem;">Planificar Lista</div>
+                <div style="font-weight: 600; font-size: 0.9rem;">Listas</div>
             </div>
             <div class="glass-card" style="text-align: center; padding: 20px 10px; cursor:pointer;" onclick="abrirModuloCatalogo()">
                 <div style="font-size: 1.5rem; margin-bottom: 8px;">📦</div>
-                <div style="font-weight: 600; font-size: 0.9rem;">Catálogo Maestro</div>
+                <div style="font-weight: 600; font-size: 0.9rem;">Catálogo</div>
+            </div>
+            <div class="glass-card" style="text-align: center; padding: 20px 10px; cursor:pointer; grid-column: span 2;" onclick="abrirModuloInventario()">
+                <div style="font-size: 1.5rem; margin-bottom: 8px;">📊</div>
+                <div style="font-weight: 600; font-size: 0.9rem;">Ajuste Manual de Inventario</div>
             </div>
         </div>
-
         <h3 style="margin-bottom: 12px; font-size: 1rem; color: var(--text-secondary);">Sugerencias (Nivel Bajo)</h3>
         <div id="sugerencias-container" class="suggestions-container"></div>
-
         <div class="glass-card" style="margin-top: 16px;">
-            <h3 style="margin-bottom: 8px;">Lista Activa</h3>
-            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;">Tienes artículos pendientes.</p>
-            <button class="btn-primary" onclick="cambiarVista('view-supermercado')">Ir al Supermercado →</button>
+            <button class="btn-primary" onclick="cambiarVista('view-supermercado'); renderChecklist();">Ir al Supermercado →</button>
         </div>
     </div>
 
-    <!-- MÓDULO A.1: CATÁLOGO -->
+    <!-- MÓDULO A.1: CATÁLOGO Y EDICIÓN -->
     <div id="view-catalogo" class="view">
         <div style="margin-top: 30px; margin-bottom: 20px;">
             <button onclick="cambiarVista('view-dashboard')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
             <h1>Catálogo Maestro</h1>
         </div>
-        <div class="glass-card" style="margin-bottom: 24px;">
-            <h3 style="margin-bottom: 12px;">Nuevo Artículo</h3>
-            <input type="text" id="cat-nombre" placeholder="Nombre (ej. Arroz San Pedro)">
-            <select id="cat-categoria">
-                <option value="Abarrotes">Abarrotes</option>
-                <option value="Lácteos">Lácteos</option>
-                <option value="Carnes">Carnes</option>
-                <option value="Limpieza">Limpieza</option>
-            </select>
-            <button class="btn-primary" onclick="guardarNuevoArticulo()">Guardar en Catálogo</button>
+        <div class="glass-card" style="margin-bottom: 24px;" id="form-catalogo">
+            <h3 style="margin-bottom: 12px;" id="cat-titulo">Nuevo Artículo</h3>
+            <input type="hidden" id="cat-id">
+            <div class="form-input"><input type="text" id="cat-nombre" placeholder="Nombre del artículo"></div>
+            <div class="form-input">
+                <select id="cat-categoria">
+                    <option value="Abarrotes">Abarrotes</option><option value="Lácteos">Lácteos</option>
+                    <option value="Carnes">Carnes</option><option value="Limpieza">Limpieza</option>
+                </select>
+            </div>
+            <button class="btn-primary" onclick="guardarArticulo()">Guardar</button>
+            <button class="btn-secondary" onclick="limpiarFormCatalogo()">Cancelar Edición</button>
         </div>
-        <h3 style="margin-bottom: 12px;">Artículos Registrados</h3>
         <div id="lista-catalogo-container"></div>
     </div>
 
-    <!-- MÓDULO A.2: NUEVA LISTA -->
+    <!-- MÓDULO A.2: LISTAS Y DUPLICACIÓN -->
     <div id="view-nueva-lista" class="view">
         <div style="margin-top: 30px; margin-bottom: 20px;">
             <button onclick="cambiarVista('view-dashboard')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
             <h1>Planificar Compra</h1>
         </div>
+        <!-- Opción 1: Duplicar -->
         <div class="glass-card">
-            <h3 style="margin-bottom: 12px;">Detalles de la Lista</h3>
-            <input type="text" id="lista-nombre" placeholder="Nombre (ej. Quincena Noviembre)">
-            <h3 style="margin-bottom: 12px; font-size: 1rem;">Selecciona los artículos:</h3>
-            <div id="seleccion-articulos-container" style="max-height: 300px; overflow-y: auto; margin-bottom:16px;"></div>
-            <button class="btn-primary" onclick="crearNuevaLista()">Generar Lista Activa</button>
+            <h3 style="margin-bottom: 12px;">Duplicar Lista Anterior</h3>
+            <div class="form-input"><select id="select-duplicar"></select></div>
+            <div class="form-input"><input type="text" id="dup-nombre" placeholder="Nombre (ej. Quincena Nueva)"></div>
+            <button class="btn-secondary" style="border-color:var(--rojo-cereza); color:var(--rojo-cereza);" onclick="duplicarLista()">Duplicar Lista</button>
+        </div>
+        <!-- Opción 2: Nueva desde cero -->
+        <div class="glass-card">
+            <h3 style="margin-bottom: 12px;">Nueva desde cero</h3>
+            <div class="form-input"><input type="text" id="lista-nombre" placeholder="Nombre (ej. Supermercado Hoy)"></div>
+            <button class="btn-primary" onclick="abrirSeleccionArticulos()">Seleccionar Artículos</button>
         </div>
     </div>
 
-    <!-- MÓDULO B: SUPERMERCADO -->
+    <!-- SELECCIÓN PARA NUEVA LISTA -->
+    <div id="view-seleccion-art" class="view">
+        <div style="margin-top: 30px; margin-bottom: 20px;">
+            <button onclick="cambiarVista('view-nueva-lista')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
+            <h1>Seleccionar</h1>
+        </div>
+        <div id="seleccion-articulos-container" style="margin-bottom: 80px;"></div>
+        <button class="fab" onclick="crearNuevaLista()">Crear Lista</button>
+    </div>
+
+    <!-- MÓDULO C: ADMINISTRACIÓN MANUAL DE INVENTARIO -->
+    <div id="view-inventario" class="view">
+        <div style="margin-top: 30px; margin-bottom: 20px;">
+            <button onclick="cambiarVista('view-dashboard')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
+            <h1>Inventario Físico</h1>
+        </div>
+        <div id="inventario-manual-container" style="margin-bottom: 80px;"></div>
+        <button class="fab" onclick="sincronizarInventarioManual()">Guardar Cambios</button>
+    </div>
+
+    <!-- MÓDULO B: SUPERMERCADO (HISTÓRICO REPARADO) -->
     <div id="view-supermercado" class="view">
         <div style="margin-top: 30px; margin-bottom: 20px;">
             <button onclick="cambiarVista('view-dashboard')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
@@ -132,36 +140,27 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN DE CONEXIÓN
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbye_QUMDHP4_hZyaNl0BImJUkl4FhYJXqwQPDQQxEqaQjzT8mLEi_-oUi0RoCia9Qan/exec'; // <--- PEGA TU URL AQUÍ
-        const API_TOKEN = 'Creaciones_960106$';       // <--- TU TOKEN
+        const GAS_URL = 'https://docs.google.com/spreadsheets/d/16C1X2EhorfAVzZmJfzZybtaUImB6E_P7p5bgvlAbpOY/edit?gid=0#gid=0'; 
+        const API_TOKEN = 'Creaciones_960106$';       
 
-        let dbCatalogo = [], dbInventario = [], dbDetalleLista = [];
+        let dbCatalogo = [], dbInventario = [], dbDetalleLista = [], dbListas = [], dbHistorico = [];
         let syncQueue = JSON.parse(localStorage.getItem('syncQueue')) || [];
 
-        // INICIALIZACIÓN
         async function initApp() {
-            document.getElementById('sync-status').innerText = "Sincronizando con Google Sheets...";
+            document.getElementById('sync-status').innerText = "Sincronizando con Sheets...";
             try {
                 const response = await fetch(`${GAS_URL}?token=${API_TOKEN}`);
                 const data = await response.json();
                 if (data.status === 'success') {
                     dbCatalogo = data.catalogo || [];
                     dbInventario = data.inventario || [];
+                    dbListas = data.listas_activas || [];
                     dbDetalleLista = data.detalle_lista || [];
-                    document.getElementById('sync-status').innerText = "Conectado (Sistema Sincronizado) ✔";
-                } else {
-                    document.getElementById('sync-status').innerText = "Error: Acceso Denegado ⚠";
-                }
-            } catch (error) {
-                document.getElementById('sync-status').innerText = "Modo Offline (Sin red) ⚠";
-            }
-            renderSugerencias(); renderChecklist();
-        }
-
-        function getNombreArticulo(idArticulo) {
-            const articulo = dbCatalogo.find(item => item.ID_Articulo === idArticulo);
-            return articulo ? articulo.Nombre_Articulo : 'Articulo Desconocido';
+                    dbHistorico = data.historico || [];
+                    document.getElementById('sync-status').innerText = "Conectado ✔";
+                } else { throw new Error(); }
+            } catch (e) { document.getElementById('sync-status').innerText = "Offline ⚠"; }
+            renderSugerencias();
         }
 
         function cambiarVista(idVista) {
@@ -170,144 +169,207 @@
             window.scrollTo(0,0);
         }
 
-        // CONTROLADORES DASHBOARD Y SUGERENCIAS
+        function getNombreArticulo(id) {
+            const art = dbCatalogo.find(i => i.ID_Articulo === id);
+            return art ? art.Nombre_Articulo : 'Desconocido';
+        }
+
         function renderSugerencias() {
             const container = document.getElementById('sugerencias-container');
             const sugerencias = dbInventario.filter(item => item.Nivel_Cualitativo === 'Bajo');
-            if(sugerencias.length === 0) return container.innerHTML = '<span style="color: var(--text-secondary); font-size: 0.9rem;">Todo en orden.</span>';
+            if(sugerencias.length === 0) return container.innerHTML = '<span style="color:var(--text-secondary)">Todo en orden.</span>';
             container.innerHTML = sugerencias.map(item => `<div class="chip">⚠ ${getNombreArticulo(item.ID_Articulo)}</div>`).join('');
         }
 
-        // CONTROLADORES CATÁLOGO
+        // ==========================================
+        // MÓDULO A: CATÁLOGO Y EDICIÓN
+        // ==========================================
         function abrirModuloCatalogo() {
             const container = document.getElementById('lista-catalogo-container');
             container.innerHTML = dbCatalogo.map(item => `
-                <div style="padding: 12px; border-bottom: 1px solid var(--glass-border);">
-                    <strong>${item.Nombre_Articulo}</strong> <span style="font-size:0.8rem; color:var(--text-secondary)">(${item.Categoria})</span>
+                <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center;" onclick="prepararEdicion('${item.ID_Articulo}')">
+                    <div><strong>${item.Nombre_Articulo}</strong><br><span style="font-size:0.8rem; color:var(--text-secondary)">${item.Categoria}</span></div>
+                    <span style="color:var(--rojo-cereza)">✎</span>
                 </div>
             `).join('');
             cambiarVista('view-catalogo');
         }
 
-        async function guardarNuevoArticulo() {
+        function prepararEdicion(id) {
+            const art = dbCatalogo.find(i => i.ID_Articulo === id);
+            document.getElementById('cat-titulo').innerText = "Editar Artículo";
+            document.getElementById('cat-id').value = art.ID_Articulo;
+            document.getElementById('cat-nombre').value = art.Nombre_Articulo;
+            document.getElementById('cat-categoria').value = art.Categoria;
+            window.scrollTo(0,0);
+        }
+
+        function limpiarFormCatalogo() {
+            document.getElementById('cat-titulo').innerText = "Nuevo Artículo";
+            document.getElementById('cat-id').value = '';
+            document.getElementById('cat-nombre').value = '';
+        }
+
+        async function guardarArticulo() {
+            const id = document.getElementById('cat-id').value;
             const nombre = document.getElementById('cat-nombre').value;
             const categoria = document.getElementById('cat-categoria').value;
-            if (!nombre) return alert("Ingresa un nombre.");
+            if (!nombre) return;
+
+            document.getElementById('sync-status').innerText = "Guardando...";
+            const action = id ? 'editar_articulo' : 'crear_articulo';
+            const payload = { ID_Articulo: id || 'ART-'+Date.now(), Nombre_Articulo: nombre, Categoria: categoria, Unidad_Medida: 'Unidad', Estado_Activo: true };
+
+            if(id) { const idx = dbCatalogo.findIndex(i => i.ID_Articulo === id); if(idx>-1) dbCatalogo[idx] = payload; } 
+            else { dbCatalogo.push(payload); }
             
-            const payload = [{ ID_Articulo: 'ART-' + Date.now(), Nombre_Articulo: nombre, Categoria: categoria, Unidad_Medida: 'Unidad', Estado_Activo: true }];
-            document.getElementById('cat-nombre').value = '';
-            document.getElementById('sync-status').innerText = "Guardando Catálogo...";
-            
-            dbCatalogo.push(payload[0]);
-            abrirModuloCatalogo();
+            limpiarFormCatalogo(); abrirModuloCatalogo();
 
             try {
-                await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'crear_articulo', data: payload, token: API_TOKEN }) });
-                document.getElementById('sync-status').innerText = "Catálogo Actualizado ✔";
-                setTimeout(() => document.getElementById('sync-status').innerText = "Conectado", 2000);
-            } catch(e) { document.getElementById('sync-status').innerText = "Guardado Localmente ⚠"; }
+                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: action, data: id ? payload : [payload], token: API_TOKEN }) });
+                document.getElementById('sync-status').innerText = "Actualizado ✔";
+            } catch(e) { document.getElementById('sync-status').innerText = "Error ⚠"; }
         }
 
-        // CONTROLADORES LISTAS
-        function abrirModuloListas() {
-            const container = document.getElementById('seleccion-articulos-container');
-            container.innerHTML = dbCatalogo.map(item => `
-                <div style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" class="chk-nueva-lista" value="${item.ID_Articulo}"> <span>${item.Nombre_Articulo}</span>
-                </div>
-            `).join('');
-            cambiarVista('view-nueva-lista');
+        // ==========================================
+        // MÓDULO A.2: DUPLICAR LISTA
+        // ==========================================
+        function renderOpcionesDuplicar() {
+            const select = document.getElementById('select-duplicar');
+            // Agrupar listas únicas para mostrar en el dropdown
+            select.innerHTML = '<option value="">Selecciona una lista anterior</option>' + 
+                dbListas.map(l => `<option value="${l.ID_Lista}">${l.Nombre_Lista} (${l.Fecha_Creacion.substring(0,10)})</option>`).join('');
         }
 
-        async function crearNuevaLista() {
-            const nombreLista = document.getElementById('lista-nombre').value || 'Nueva Lista';
-            const checkboxes = document.querySelectorAll('.chk-nueva-lista:checked');
-            if (checkboxes.length === 0) return alert("Selecciona al menos un artículo.");
+        async function duplicarLista() {
+            const idVieja = document.getElementById('select-duplicar').value;
+            const nombre = document.getElementById('dup-nombre').value || 'Lista Duplicada';
+            if(!idVieja) return alert("Selecciona una lista");
 
-            const nuevoIdLista = 'LST-' + Date.now();
-            let nuevosDetalles = Array.from(checkboxes).map(chk => ({
-                ID_Detalle: 'DET-' + Date.now() + Math.floor(Math.random() * 100),
-                ID_Lista: nuevoIdLista, ID_Articulo: chk.value, Cantidad_Planificada: 1, Comprado: false, Precio_Registrado: 0
-            }));
+            document.getElementById('sync-status').innerText = "Duplicando...";
+            const idNueva = 'LST-'+Date.now();
+            
+            // Simular localmente
+            const itemsViejos = dbDetalleLista.filter(i => i.ID_Lista === idVieja);
+            itemsViejos.forEach(i => dbDetalleLista.push({...i, ID_Lista: idNueva, ID_Detalle: 'DET-'+Date.now()+Math.random(), Comprado: false}));
 
-            dbDetalleLista.push(...nuevosDetalles);
-            document.getElementById('sync-status').innerText = "Generando Lista...";
-            cambiarVista('view-dashboard'); renderChecklist();
-
+            cambiarVista('view-dashboard');
             try {
-                await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'crear_lista', data: nuevosDetalles, nombre: nombreLista, token: API_TOKEN }) });
-                document.getElementById('sync-status').innerText = "Lista Guardada ✔";
-                setTimeout(() => document.getElementById('sync-status').innerText = "Conectado", 2000);
-            } catch(e) { document.getElementById('sync-status').innerText = "Lista Creada Localmente ⚠"; }
+                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'duplicar_lista', id_vieja: idVieja, id_nueva: idNueva, nombre: nombre, token: API_TOKEN }) });
+                document.getElementById('sync-status').innerText = "Lista Duplicada ✔";
+            } catch(e) { document.getElementById('sync-status').innerText = "Error ⚠"; }
         }
 
-        // CONTROLADORES SUPERMERCADO
+        // ==========================================
+        // MÓDULO B: HISTÓRICO REPARADO
+        // ==========================================
+        function getUltimoPrecio(idArticulo) {
+            // Filtrar históricos del artículo y tomar el último
+            const precios = dbHistorico.filter(h => h.ID_Articulo === idArticulo);
+            if(precios.length === 0) return 0;
+            // Asumiendo que están ordenados cronológicamente al hacer appendRow
+            return parseFloat(precios[precios.length - 1].Precio);
+        }
+
         function renderChecklist() {
             const container = document.getElementById('checklist-container');
             const pendientes = dbDetalleLista.filter(item => !item.Comprado);
             document.getElementById('items-count').innerText = pendientes.length;
-            if (pendientes.length === 0) return container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-secondary);">No hay artículos pendientes.</div>';
-
-            container.innerHTML = pendientes.map(item => `
+            
+            container.innerHTML = pendientes.map(item => {
+                const precioAnterior = getUltimoPrecio(item.ID_Articulo);
+                return `
                 <div class="glass-card" id="card-${item.ID_Articulo}">
                     <div class="item-header">
                         <input type="checkbox" id="chk-${item.ID_Articulo}" onchange="toggleComprado('${item.ID_Articulo}')">
                         <div class="item-info">
                             <div style="font-weight: 600; font-size: 1.1rem;">${getNombreArticulo(item.ID_Articulo)}</div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${item.Cantidad_Planificada} unidades requeridas</div>
                         </div>
                     </div>
                     <div class="price-controls" id="price-ctrl-${item.ID_Articulo}">
-                        <div class="price-input-wrapper"><span style="color:var(--text-secondary)">$</span><input type="number" step="0.01" id="precio-${item.ID_Articulo}" placeholder="0.00"></div>
+                        <div class="price-input-wrapper" style="width: 50%;">
+                            <span style="color:var(--text-secondary)">$</span>
+                            <input type="number" step="0.01" id="precio-${item.ID_Articulo}" placeholder="0.00" onkeyup="evaluarTendencia('${item.ID_Articulo}', ${precioAnterior})">
+                        </div>
+                        <div style="font-size: 0.8rem; text-align:right;">
+                            Último: $${precioAnterior.toFixed(2)}<br>
+                            <span id="tendencia-${item.ID_Articulo}" style="color:var(--text-secondary)">-</span>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                </div>`
+            }).join('');
+        }
+
+        function evaluarTendencia(id, precioAnterior) {
+            const val = parseFloat(document.getElementById(`precio-${id}`).value);
+            const span = document.getElementById(`tendencia-${id}`);
+            if(!val || !precioAnterior) return span.innerText = '-';
+            if(val > precioAnterior) span.innerHTML = '<span style="color:var(--rojo-cereza)">▲ Sube</span>';
+            else if(val < precioAnterior) span.innerHTML = '<span style="color:#10B981">▼ Baja</span>';
+            else span.innerText = 'Igual';
         }
 
         function toggleComprado(idArticulo) {
-            const card = document.getElementById(`card-${idArticulo}`);
             const isChecked = document.getElementById(`chk-${idArticulo}`).checked;
-            const itemIndex = dbDetalleLista.findIndex(i => i.ID_Articulo === idArticulo);
-            if (itemIndex > -1) dbDetalleLista[itemIndex].Comprado = isChecked;
-
-            if (isChecked) {
-                card.classList.add('comprado');
-                document.getElementById(`price-ctrl-${idArticulo}`).style.display = 'flex';
-                setTimeout(() => document.getElementById(`precio-${idArticulo}`).focus(), 50); 
-            } else {
-                card.classList.remove('comprado');
-                document.getElementById(`price-ctrl-${idArticulo}`).style.display = 'none';
-                document.getElementById(`precio-${idArticulo}`).value = '';
-            }
+            document.getElementById(`card-${idArticulo}`).classList.toggle('comprado', isChecked);
+            document.getElementById(`price-ctrl-${idArticulo}`).style.display = isChecked ? 'flex' : 'none';
         }
 
         async function concluirCompra() {
             const itemsProcesar = dbDetalleLista.filter(item => {
                 const chk = document.getElementById(`chk-${item.ID_Articulo}`);
-                const inputPrecio = document.getElementById(`precio-${item.ID_Articulo}`);
-                if (chk && chk.checked && inputPrecio && inputPrecio.value) {
-                    item.precio_actual = parseFloat(inputPrecio.value); return true;
-                } return false;
+                const input = document.getElementById(`precio-${item.ID_Articulo}`);
+                if (chk && chk.checked && input && input.value) { item.precio_actual = parseFloat(input.value); return true; }
+                return false;
             });
-            if (itemsProcesar.length === 0) return alert("No hay artículos marcados con precio registrado.");
-
-            const payloadData = itemsProcesar.map(item => ({ id_articulo: item.ID_Articulo, id_lista: item.ID_Lista, cantidad: item.Cantidad_Planificada, precio: item.precio_actual }));
-            document.getElementById('checklist-container').innerHTML = '<div style="padding: 40px; text-align: center;">Procesando transacción en bloque...</div>';
-            document.getElementById('sync-status').innerText = "Guardando en Sheets...";
-
+            if (itemsProcesar.length === 0) return;
+            const payload = itemsProcesar.map(item => ({ id_articulo: item.ID_Articulo, id_lista: item.ID_Lista, cantidad: item.Cantidad_Planificada, precio: item.precio_actual }));
+            
+            document.getElementById('sync-status').innerText = "Procesando...";
             try {
-                await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'sincronizar_compra_batch', data: payloadData, token: API_TOKEN }) });
-                setTimeout(() => {
-                    document.getElementById('sync-status').innerText = "BD Actualizada ✔";
-                    setTimeout(() => { cambiarVista('view-dashboard'); initApp(); }, 2000);
-                }, 1000);
-            } catch (error) {
-                syncQueue.push(...payloadData); localStorage.setItem('syncQueue', JSON.stringify(syncQueue));
-                document.getElementById('sync-status').innerText = "Guardado Localmente ⚠"; cambiarVista('view-dashboard');
-            }
+                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'sincronizar_compra_batch', data: payload, token: API_TOKEN }) });
+                initApp(); cambiarVista('view-dashboard');
+            } catch (e) { document.getElementById('sync-status').innerText = "Error ⚠"; }
         }
 
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW Falló:', e))); }
+        // ==========================================
+        // MÓDULO C: INVENTARIO MANUAL
+        // ==========================================
+        function abrirModuloInventario() {
+            const container = document.getElementById('inventario-manual-container');
+            container.innerHTML = dbInventario.map(item => `
+                <div class="glass-card">
+                    <div style="font-weight: 600; margin-bottom:8px;">${getNombreArticulo(item.ID_Articulo)}</div>
+                    <div style="display:flex; gap:10px;">
+                        <div class="form-input" style="flex:1; margin:0;"><input type="number" id="inv-cant-${item.ID_Articulo}" value="${item.Existencia_Cuantitativa}" style="text-align:center;"></div>
+                        <div class="form-input" style="flex:2; margin:0;">
+                            <select id="inv-nivel-${item.ID_Articulo}">
+                                <option value="Alto" ${item.Nivel_Cualitativo==='Alto'?'selected':''}>Alto</option>
+                                <option value="Mediano" ${item.Nivel_Cualitativo==='Mediano'?'selected':''}>Mediano</option>
+                                <option value="Bajo" ${item.Nivel_Cualitativo==='Bajo'?'selected':''}>Bajo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            cambiarVista('view-inventario');
+        }
+
+        async function sincronizarInventarioManual() {
+            const payload = dbInventario.map(item => ({
+                id: item.ID_Articulo,
+                cant: parseFloat(document.getElementById(`inv-cant-${item.ID_Articulo}`).value),
+                nivel: document.getElementById(`inv-nivel-${item.ID_Articulo}`).value
+            }));
+            
+            document.getElementById('sync-status').innerText = "Guardando Inventario...";
+            cambiarVista('view-dashboard');
+            try {
+                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'actualizar_inventario_manual', data: payload, token: API_TOKEN }) });
+                initApp();
+            } catch(e) { document.getElementById('sync-status').innerText = "Error ⚠"; }
+        }
+
         window.onload = initApp;
     </script>
 </body>
