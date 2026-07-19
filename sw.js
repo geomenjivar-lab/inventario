@@ -1,8 +1,10 @@
-const CACHE_NAME = 'inventario-pwa-v1';
+const CACHE_NAME = 'inventario-pwa-v4';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json'
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (e) => {
@@ -12,7 +14,9 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Estrategia Stale-while-revalidate para recursos estáticos
+  // Ignorar las llamadas a la API de Google Apps Script para que no rompan el caché de red
+  if (e.request.url.includes('script.google.com')) return;
+  
   e.respondWith(
     caches.match(e.request).then((response) => {
       return response || fetch(e.request);
