@@ -2,7 +2,12 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#D2042D">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Inventario">
+    <link rel="apple-touch-icon" href="icon-512.png">
     <title>Inventario & Compras</title>
     <link rel="manifest" href="manifest.json">
     <style>
@@ -28,6 +33,7 @@
         
         .btn-primary { background: var(--rojo-cereza); color: white; border: none; padding: 14px 24px; border-radius: 12px; font-weight: 600; width: 100%; font-size: 1rem; cursor: pointer; transition: transform 0.1s; }
         .btn-primary:active { transform: scale(0.97); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-secondary { background: transparent; color: white; border: 1px solid var(--glass-border); padding: 14px; border-radius: 12px; width: 100%; font-size: 0.9rem; margin-top:8px; cursor: pointer; }
         .fab { position: fixed; bottom: 24px; right: 24px; background-color: var(--rojo-cereza); color: white; border: none; border-radius: 28px; height: 56px; padding: 0 24px; font-size: 1rem; font-weight: bold; z-index: 1000; box-shadow: 0 8px 24px rgba(210, 4, 45, 0.4); display: flex; align-items: center; justify-content: center; }
         
@@ -58,7 +64,7 @@
         </div>
         <div class="glass-card">
             <div class="form-input">
-                <input type="password" id="input-master-key" placeholder="••••••••" style="text-align: center; font-size: 1.5rem; letter-spacing: 4px;">
+                <input type="password" id="input-master-key" placeholder="••••••••" style="text-align: center; font-size: 1.5rem; letter-spacing: 4px;" autocomplete="current-password">
             </div>
             <button class="btn-primary" onclick="verificarAcceso()" id="btn-login">Desbloquear App</button>
             <p id="login-error" style="color: var(--rojo-cereza); text-align: center; margin-top: 12px; font-size: 0.9rem; display: none;">Clave incorrecta o sin conexión.</p>
@@ -169,7 +175,7 @@
         // CONFIGURACIÓN DE URL EXACTA
         // ==========================================
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbye_QUMDHP4_hZyaNl0BImJUk14FhYJXqwQPDQQxEqaQjzT8mLEi_-oUi0RoCia9Qan/exec';
-        
+
         let APP_SECRET_KEY = null;
         let dbCatalogo = [], dbInventario = [], dbDetalleLista = [], dbListas = [], dbHistorico = [];
         let syncQueue = [];
@@ -205,73 +211,111 @@
             } catch (e) {}
         }
 
+        // Genera IDs realmente únicos. La versión anterior usaba Date.now() + un
+        // entero aleatorio de 0-99, lo que colisiona con muchísima frecuencia cuando
+        // se crean varias filas en el mismo milisegundo (ej. al crear una lista de
+        // 15 artículos de golpe).
+        function generarId(prefijo) {
+            if (window.crypto && crypto.randomUUID) return prefijo + '-' + crypto.randomUUID();
+            return prefijo + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+        }
+
+        // Escapa HTML antes de insertarlo vía innerHTML (defensa en profundidad: por
+        // ejemplo si alguien edita la hoja de cálculo directamente y mete un texto
+        // con caracteres de marcado).
+        function escaparHTML(str) {
+            if (str === null || str === undefined) return '';
+            const mapa = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return String(str).replace(/[&<>"']/g, c => mapa[c]);
+        }
+
+        // invocarBackend ahora SIEMPRE revisa el resultado. Antes se devolvía la
+        // Response cruda del fetch sin leer su contenido, así que un error real del
+        // backend (token inválido, Sheets caído, acción no reconocida) se veía desde
+        // el frontend como un "éxito" silencioso: la UI mostraba "Guardado ✔" aunque
+        // el dato jamás llegara a escribirse en la hoja de cálculo.
         async function invocarBackend(payload) {
-            payload.token = APP_SECRET_KEY; 
-            return fetch(GAS_URL, {
+            payload.token = APP_SECRET_KEY;
+            const response = await fetch(GAS_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload)
             });
+            if (!response.ok) throw new Error('Error de red: ' + response.status);
+
+            const data = await response.json();
+            if (data.status === 'auth_error') {
+                const err = new Error(data.message || 'Token inválido');
+                err.tipoError = 'auth';
+                throw err;
+            }
+            if (data.status !== 'success') throw new Error(data.message || 'Error desconocido del servidor');
+            return data;
         }
 
         window.onload = () => {
-            if (APP_SECRET_KEY) { iniciarSistemaAutenticado(); } 
+            if (APP_SECRET_KEY) { iniciarSistemaAutenticado(); }
             else { cambiarVista('view-login'); }
         };
 
         async function verificarAcceso() {
             const intento = document.getElementById('input-master-key').value;
             if (!intento) return;
-            
+
             const btn = document.getElementById('btn-login');
             btn.innerText = "Verificando..."; btn.disabled = true;
 
-            try {
-                const response = await fetch(`${GAS_URL}?token=${intento}`);
-                const data = await response.json();
+            const tokenPrevio = APP_SECRET_KEY;
+            APP_SECRET_KEY = intento; // se necesita antes de la llamada para que invocarBackend lo adjunte
 
-                if (data.status === 'success') {
-                    guardarTokenLocal(intento);
-                    document.getElementById('login-error').style.display = 'none';
-                    document.getElementById('sync-status').style.display = 'block';
-                    
-                    dbCatalogo = data.catalogo || []; dbInventario = data.inventario || [];
-                    dbListas = data.listas_activas || []; dbDetalleLista = data.detalle_lista || [];
-                    dbHistorico = data.historico || [];
-                    guardarCacheLocal();
-                    
-                    cambiarVista('view-dashboard'); renderSugerencias();
-                    document.getElementById('sync-status').innerText = "Conectado ✔";
-                } else { throw new Error("Acceso denegado"); }
+            try {
+                const data = await invocarBackend({ action: 'validar_y_cargar' });
+
+                guardarTokenLocal(intento);
+                document.getElementById('login-error').style.display = 'none';
+                document.getElementById('sync-status').style.display = 'block';
+
+                dbCatalogo = data.catalogo || []; dbInventario = data.inventario || [];
+                dbListas = data.listas_activas || []; dbDetalleLista = data.detalle_lista || [];
+                dbHistorico = data.historico || [];
+                guardarCacheLocal();
+
+                cambiarVista('view-dashboard'); renderSugerencias();
+                document.getElementById('sync-status').innerText = "Conectado ✔";
             } catch (e) {
+                APP_SECRET_KEY = tokenPrevio;
                 document.getElementById('login-error').style.display = 'block';
                 btn.innerText = "Desbloquear App"; btn.disabled = false;
             }
         }
 
         async function iniciarSistemaAutenticado() {
-            cargarCacheLocal(); 
+            cargarCacheLocal();
             cambiarVista('view-dashboard'); renderSugerencias();
             document.getElementById('sync-status').style.display = 'block';
             document.getElementById('sync-status').innerText = "Sincronizando con Sheets...";
-            
+
             try {
-                const response = await fetch(`${GAS_URL}?token=${APP_SECRET_KEY}`);
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    dbCatalogo = data.catalogo || []; dbInventario = data.inventario || [];
-                    dbListas = data.listas_activas || []; dbDetalleLista = data.detalle_lista || [];
-                    dbHistorico = data.historico || [];
-                    guardarCacheLocal(); renderSugerencias(); 
-                    document.getElementById('sync-status').innerText = "Conectado ✔";
-                } else { 
+                const data = await invocarBackend({ action: 'validar_y_cargar' });
+
+                dbCatalogo = data.catalogo || []; dbInventario = data.inventario || [];
+                dbListas = data.listas_activas || []; dbDetalleLista = data.detalle_lista || [];
+                dbHistorico = data.historico || [];
+                guardarCacheLocal(); renderSugerencias();
+                document.getElementById('sync-status').innerText = "Conectado ✔";
+            } catch (e) {
+                if (e.tipoError === 'auth') {
+                    // El token guardado ya no es válido: se cierra sesión en vez de
+                    // quedarse mostrando datos de una cuenta a la que ya no se tiene acceso.
                     APP_SECRET_KEY = null;
-                    try { localStorage.removeItem('app_secure_token'); } catch(e){}
+                    try { localStorage.removeItem('app_secure_token'); } catch(err) {}
                     document.getElementById('sync-status').style.display = 'none';
                     cambiarVista('view-login');
+                } else {
+                    // Falla de red: se sigue trabajando con la copia local en caché.
+                    document.getElementById('sync-status').innerText = "Modo Offline (Caché Local) ⚠";
                 }
-            } catch (e) { document.getElementById('sync-status').innerText = "Modo Offline (Caché Local) ⚠"; }
+            }
         }
 
         function cambiarVista(idVista) {
@@ -289,14 +333,14 @@
             const container = document.getElementById('sugerencias-container');
             const sugerencias = dbInventario.filter(item => item.Nivel_Cualitativo === 'Bajo');
             if(sugerencias.length === 0) return container.innerHTML = '<span style="color:var(--text-secondary)">Inventario óptimo.</span>';
-            container.innerHTML = sugerencias.map(item => `<div class="chip">⚠ ${getNombreArticulo(item.ID_Articulo)}</div>`).join('');
+            container.innerHTML = sugerencias.map(item => `<div class="chip">⚠ ${escaparHTML(getNombreArticulo(item.ID_Articulo))}</div>`).join('');
         }
 
         function abrirModuloCatalogo() {
             const container = document.getElementById('lista-catalogo-container');
             container.innerHTML = dbCatalogo.map(item => `
                 <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center;" onclick="prepararEdicion('${item.ID_Articulo}')">
-                    <div><strong>${item.Nombre_Articulo}</strong><br><span style="font-size:0.8rem; color:var(--text-secondary)">${item.Categoria}</span></div>
+                    <div><strong>${escaparHTML(item.Nombre_Articulo)}</strong><br><span style="font-size:0.8rem; color:var(--text-secondary)">${escaparHTML(item.Categoria)}</span></div>
                     <span style="color:var(--rojo-cereza); font-size:1.2rem;">✎</span>
                 </div>
             `).join('');
@@ -305,6 +349,7 @@
 
         function prepararEdicion(id) {
             const art = dbCatalogo.find(i => i.ID_Articulo === id);
+            if (!art) return;
             document.getElementById('cat-titulo').innerText = "Editar Artículo";
             document.getElementById('cat-id').value = art.ID_Articulo;
             document.getElementById('cat-nombre').value = art.Nombre_Articulo;
@@ -320,36 +365,37 @@
 
         async function guardarArticulo() {
             const id = document.getElementById('cat-id').value;
-            const nombre = document.getElementById('cat-nombre').value;
+            const nombre = document.getElementById('cat-nombre').value.trim();
             const categoria = document.getElementById('cat-categoria').value;
             if (!nombre) return;
 
             document.getElementById('sync-status').innerText = "Guardando...";
             const action = id ? 'editar_articulo' : 'crear_articulo';
-            const payload = { ID_Articulo: id || 'ART-'+Date.now(), Nombre_Articulo: nombre, Categoria: categoria, Unidad_Medida: 'Unidad', Estado_Activo: true };
+            const payload = { ID_Articulo: id || generarId('ART'), Nombre_Articulo: nombre, Categoria: categoria, Unidad_Medida: 'Unidad', Estado_Activo: true };
 
-            if(id) { const idx = dbCatalogo.findIndex(i => i.ID_Articulo === id); if(idx>-1) dbCatalogo[idx] = payload; } 
+            if(id) { const idx = dbCatalogo.findIndex(i => i.ID_Articulo === id); if(idx>-1) dbCatalogo[idx] = payload; }
             else { dbCatalogo.push(payload); }
-            
+
             guardarCacheLocal(); limpiarFormCatalogo(); abrirModuloCatalogo();
 
             try {
                 await invocarBackend({ action: action, data: [payload] });
                 document.getElementById('sync-status').innerText = "Catálogo Actualizado ✔";
+                iniciarSistemaAutenticado(); // re-sincroniza en segundo plano con la verdad del servidor
             } catch(e) { document.getElementById('sync-status').innerText = "Guardado Localmente ⚠"; }
         }
 
         function abrirSeleccionArticulos() {
             const container = document.getElementById('seleccion-articulos-container');
             const articulosBajos = dbInventario.filter(i => i.Nivel_Cualitativo === 'Bajo').map(i => i.ID_Articulo);
-            
+
             container.innerHTML = dbCatalogo.map(item => {
                 const esSugerido = articulosBajos.includes(item.ID_Articulo);
                 return `
                 <div style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px;">
-                    <input type="checkbox" class="chk-nueva-lista" value="${item.ID_Articulo}" ${esSugerido ? 'checked' : ''}> 
+                    <input type="checkbox" class="chk-nueva-lista" value="${item.ID_Articulo}" ${esSugerido ? 'checked' : ''}>
                     <div>
-                        <div style="font-size:1.1rem">${item.Nombre_Articulo}</div>
+                        <div style="font-size:1.1rem">${escaparHTML(item.Nombre_Articulo)}</div>
                         ${esSugerido ? '<span style="color:var(--rojo-cereza); font-size:0.8rem;">Sugerencia de Inventario</span>' : ''}
                     </div>
                 </div>`
@@ -358,18 +404,18 @@
         }
 
         async function crearNuevaLista() {
-            const nombreLista = document.getElementById('lista-nombre').value || 'Lista Activa';
+            const nombreLista = document.getElementById('lista-nombre').value.trim() || 'Lista Activa';
             const checkboxes = document.querySelectorAll('.chk-nueva-lista:checked');
             if (checkboxes.length === 0) return alert("Selecciona artículos.");
 
-            const nuevoIdLista = 'LST-' + Date.now();
+            const nuevoIdLista = generarId('LST');
             dbListas.push({ ID_Lista: nuevoIdLista, Nombre_Lista: nombreLista, Fecha_Creacion: new Date().toISOString(), Estado: 'Activa' });
 
             let nuevosDetalles = Array.from(checkboxes).map(chk => ({
-                ID_Detalle: 'DET-' + Date.now() + Math.floor(Math.random()*100),
+                ID_Detalle: generarId('DET'),
                 ID_Lista: nuevoIdLista, ID_Articulo: chk.value, Cantidad_Planificada: 1, Comprado: false, Precio_Registrado: 0
             }));
-            
+
             dbDetalleLista.push(...nuevosDetalles); guardarCacheLocal();
             document.getElementById('sync-status').innerText = "Creando Lista...";
             cambiarVista('view-dashboard'); renderChecklist();
@@ -377,37 +423,39 @@
             try {
                 await invocarBackend({ action: 'crear_lista', data: nuevosDetalles, nombre: nombreLista });
                 document.getElementById('sync-status').innerText = "Lista Guardada ✔";
+                iniciarSistemaAutenticado();
             } catch(e) { document.getElementById('sync-status').innerText = "Creada en Caché ⚠"; }
         }
 
         function renderOpcionesDuplicar() {
             const select = document.getElementById('select-duplicar');
-            select.innerHTML = '<option value="">Selecciona lista anterior</option>' + 
-                dbListas.map(l => `<option value="${l.ID_Lista}">${l.Nombre_Lista} (${String(l.Fecha_Creacion).substring(0,10)})</option>`).join('');
+            select.innerHTML = '<option value="">Selecciona lista anterior</option>' +
+                dbListas.map(l => `<option value="${l.ID_Lista}">${escaparHTML(l.Nombre_Lista)} (${escaparHTML(String(l.Fecha_Creacion).substring(0,10))})</option>`).join('');
         }
 
         async function duplicarLista() {
             const idVieja = document.getElementById('select-duplicar').value;
-            const nombre = document.getElementById('dup-nombre').value || 'Lista Duplicada';
+            const nombre = document.getElementById('dup-nombre').value.trim() || 'Lista Duplicada';
             if(!idVieja) return alert("Selecciona una lista");
 
             document.getElementById('sync-status').innerText = "Duplicando...";
-            const idNueva = 'LST-'+Date.now();
+            const idNueva = generarId('LST');
             dbListas.push({ ID_Lista: idNueva, Nombre_Lista: nombre, Fecha_Creacion: new Date().toISOString(), Estado: 'Activa' });
-            
+
             const itemsViejos = dbDetalleLista.filter(i => i.ID_Lista === idVieja);
-            itemsViejos.forEach(i => dbDetalleLista.push({...i, ID_Lista: idNueva, ID_Detalle: 'DET-'+Date.now()+Math.random(), Comprado: false}));
+            itemsViejos.forEach(i => dbDetalleLista.push({...i, ID_Lista: idNueva, ID_Detalle: generarId('DET'), Comprado: false, Precio_Registrado: 0}));
 
             guardarCacheLocal(); cambiarVista('view-dashboard');
             try {
                 await invocarBackend({ action: 'duplicar_lista', id_vieja: idVieja, id_nueva: idNueva, nombre: nombre });
                 document.getElementById('sync-status').innerText = "Lista Duplicada ✔";
+                iniciarSistemaAutenticado();
             } catch(e) { document.getElementById('sync-status').innerText = "Duplicada en Caché ⚠"; }
         }
 
         function getUltimoPrecio(idArticulo) {
             const precios = dbHistorico.filter(h => h.ID_Articulo === idArticulo);
-            if(precios.length === 0) return 0;
+            if(precios.length === 0) return null; // null = "sin historial", distinto de "costó $0"
             return parseFloat(precios[precios.length - 1].Precio);
         }
 
@@ -415,23 +463,24 @@
             const container = document.getElementById('checklist-container');
             const pendientes = dbDetalleLista.filter(item => !item.Comprado);
             document.getElementById('items-count').innerText = pendientes.length;
-            
+
             if (pendientes.length === 0) return container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-secondary);">No hay artículos pendientes.</div>';
 
             container.innerHTML = pendientes.map(item => {
                 const precioAnterior = getUltimoPrecio(item.ID_Articulo);
+                const etiquetaPrecio = precioAnterior === null ? 'Sin historial' : `Último: $${precioAnterior.toFixed(2)}`;
                 return `
                 <div class="glass-card" id="card-${item.ID_Articulo}">
                     <div class="item-header">
                         <input type="checkbox" id="chk-${item.ID_Articulo}" onchange="toggleComprado('${item.ID_Articulo}')">
-                        <div class="item-info"><div style="font-weight: 600; font-size: 1.1rem;">${getNombreArticulo(item.ID_Articulo)}</div></div>
+                        <div class="item-info"><div style="font-weight: 600; font-size: 1.1rem;">${escaparHTML(getNombreArticulo(item.ID_Articulo))}</div></div>
                     </div>
                     <div class="price-controls" id="price-ctrl-${item.ID_Articulo}">
                         <div class="price-input-wrapper">
                             <span style="color:var(--text-secondary)">$</span>
-                            <input type="number" inputmode="decimal" pattern="[0-9]*" step="0.01" id="precio-${item.ID_Articulo}" placeholder="0.00" onkeyup="evaluarTendencia('${item.ID_Articulo}', ${precioAnterior})">
+                            <input type="number" inputmode="decimal" step="0.01" min="0" id="precio-${item.ID_Articulo}" placeholder="0.00" onkeyup="evaluarTendencia('${item.ID_Articulo}', ${precioAnterior})">
                         </div>
-                        <div style="font-size: 0.8rem; text-align:right; min-width:80px;">Último: $${precioAnterior.toFixed(2)}<br><span id="tendencia-${item.ID_Articulo}" style="color:var(--text-secondary)">-</span></div>
+                        <div style="font-size: 0.8rem; text-align:right; min-width:80px;">${etiquetaPrecio}<br><span id="tendencia-${item.ID_Articulo}" style="color:var(--text-secondary)">-</span></div>
                     </div>
                 </div>`
             }).join('');
@@ -440,7 +489,7 @@
         function evaluarTendencia(id, precioAnterior) {
             const val = parseFloat(document.getElementById(`precio-${id}`).value);
             const span = document.getElementById(`tendencia-${id}`);
-            if(!val || !precioAnterior) return span.innerText = '-';
+            if(isNaN(val) || precioAnterior === null || isNaN(precioAnterior)) return span.innerText = '-';
             if(val > precioAnterior) span.innerHTML = '<span style="color:var(--rojo-cereza)">▲ Sube</span>';
             else if(val < precioAnterior) span.innerHTML = '<span style="color:#10B981">▼ Baja</span>';
             else span.innerText = 'Igual';
@@ -458,29 +507,30 @@
             const itemsProcesar = dbDetalleLista.filter(item => {
                 const chk = document.getElementById(`chk-${item.ID_Articulo}`);
                 const input = document.getElementById(`precio-${item.ID_Articulo}`);
-                if (chk && chk.checked && input && input.value) { 
-                    item.precio_actual = parseFloat(input.value); 
-                    item.Comprado = true; 
-                    return true; 
+                const precio = input ? parseFloat(input.value) : NaN;
+                if (chk && chk.checked && !isNaN(precio) && precio >= 0) {
+                    item.precio_actual = precio;
+                    item.Comprado = true;
+                    return true;
                 } return false;
             });
-            
+
             if (itemsProcesar.length === 0) return alert("Selecciona y asigna precio a los productos.");
-            
+
             const payload = itemsProcesar.map(item => ({ id_articulo: item.ID_Articulo, id_lista: item.ID_Lista, cantidad: item.Cantidad_Planificada, precio: item.precio_actual }));
-            
+
             guardarCacheLocal(); cambiarVista('view-dashboard');
             document.getElementById('sync-status').innerText = "Grabando en Sheets...";
-            
+
             try {
                 await invocarBackend({ action: 'sincronizar_compra_batch', data: payload });
-                iniciarSistemaAutenticado(); 
-            } catch (e) { 
+                iniciarSistemaAutenticado();
+            } catch (e) {
                 try {
-                    syncQueue.push(...payload); 
+                    syncQueue.push(...payload);
                     localStorage.setItem('syncQueue', JSON.stringify(syncQueue));
                 } catch(err) {}
-                document.getElementById('sync-status').innerText = "Transacción Guardada Offline ⚠"; 
+                document.getElementById('sync-status').innerText = "Transacción Guardada Offline ⚠";
             }
         }
 
@@ -488,10 +538,10 @@
             const container = document.getElementById('inventario-manual-container');
             container.innerHTML = dbInventario.map(item => `
                 <div class="glass-card">
-                    <div style="font-weight: 600; margin-bottom:8px;">${getNombreArticulo(item.ID_Articulo)}</div>
+                    <div style="font-weight: 600; margin-bottom:8px;">${escaparHTML(getNombreArticulo(item.ID_Articulo))}</div>
                     <div style="display:flex; gap:10px;">
                         <div class="form-input" style="flex:1; margin:0;">
-                            <input type="number" inputmode="decimal" pattern="[0-9]*" id="inv-cant-${item.ID_Articulo}" value="${item.Existencia_Cuantitativa}" style="text-align:center;">
+                            <input type="number" inputmode="decimal" min="0" id="inv-cant-${item.ID_Articulo}" value="${item.Existencia_Cuantitativa}" style="text-align:center;">
                         </div>
                         <div class="form-input" style="flex:2; margin:0;">
                             <select id="inv-nivel-${item.ID_Articulo}">
@@ -507,13 +557,18 @@
         }
 
         async function sincronizarInventarioManual() {
-            const payload = dbInventario.map(item => {
-                const nuevaCant = parseFloat(document.getElementById(`inv-cant-${item.ID_Articulo}`).value);
+            const payload = [];
+            for (const item of dbInventario) {
+                const inputCant = document.getElementById(`inv-cant-${item.ID_Articulo}`);
+                const nuevaCant = parseFloat(inputCant.value);
+                if (isNaN(nuevaCant) || nuevaCant < 0) {
+                    return alert(`Cantidad inválida para "${getNombreArticulo(item.ID_Articulo)}".`);
+                }
                 const nuevoNivel = document.getElementById(`inv-nivel-${item.ID_Articulo}`).value;
                 item.Existencia_Cuantitativa = nuevaCant; item.Nivel_Cualitativo = nuevoNivel;
-                return { id: item.ID_Articulo, cant: nuevaCant, nivel: nuevoNivel };
-            });
-            
+                payload.push({ id: item.ID_Articulo, cant: nuevaCant, nivel: nuevoNivel });
+            }
+
             guardarCacheLocal(); cambiarVista('view-dashboard');
             document.getElementById('sync-status').innerText = "Guardando Inventario...";
             try {
@@ -523,8 +578,8 @@
         }
 
         // Service Worker
-        if ('serviceWorker' in navigator) { 
-            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(e => console.log('SW Falló:', e))); 
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(e => console.log('SW Falló:', e)));
         }
     </script>
 </body>
