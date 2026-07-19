@@ -2,13 +2,11 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- Viewport estricto para evitar zoom indeseado al escribir en móvil -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario & Compras</title>
     <link rel="manifest" href="manifest.json">
     <style>
         :root {
-            /* Modo OLED / Glassmorphism / Cherry Red Accents */
             --rojo-cereza: #D2042D; --bg-base: #000000; --text-primary: #F8FAFC; --text-secondary: #94A3B8;
             --glass-bg: rgba(15, 23, 42, 0.65); --glass-border: rgba(255, 255, 255, 0.08); --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
@@ -16,7 +14,7 @@
             :root { --bg-base: #F1F5F9; --text-primary: #0F172A; --text-secondary: #475569; --glass-bg: rgba(255, 255, 255, 0.7); --glass-border: rgba(0, 0, 0, 0.05); }
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-base); color: var(--text-primary); padding: 16px; padding-bottom: 100px; transition: background 0.3s ease; }
+        body { background-color: var(--bg-base); color: var(--text-primary); padding: 16px; padding-bottom: 100px; }
         
         .glass-card { background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: var(--glass-shadow); }
         .view { display: none; animation: fadeIn 0.3s; }
@@ -31,10 +29,8 @@
         .btn-primary { background: var(--rojo-cereza); color: white; border: none; padding: 14px 24px; border-radius: 12px; font-weight: 600; width: 100%; font-size: 1rem; cursor: pointer; transition: transform 0.1s; }
         .btn-primary:active { transform: scale(0.97); }
         .btn-secondary { background: transparent; color: white; border: 1px solid var(--glass-border); padding: 14px; border-radius: 12px; width: 100%; font-size: 0.9rem; margin-top:8px; cursor: pointer; }
-        .fab { position: fixed; bottom: 24px; right: 24px; background-color: var(--rojo-cereza); color: white; border: none; border-radius: 28px; height: 56px; padding: 0 24px; font-size: 1rem; font-weight: bold; z-index: 1000; box-shadow: 0 8px 24px rgba(210, 4, 45, 0.4); display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
-        .fab:active { transform: scale(0.95); }
+        .fab { position: fixed; bottom: 24px; right: 24px; background-color: var(--rojo-cereza); color: white; border: none; border-radius: 28px; height: 56px; padding: 0 24px; font-size: 1rem; font-weight: bold; z-index: 1000; box-shadow: 0 8px 24px rgba(210, 4, 45, 0.4); display: flex; align-items: center; justify-content: center; }
         
-        /* Checkboxes Mobile-First 48px */
         .item-header { display: flex; align-items: center; justify-content: space-between; }
         .item-info { flex-grow: 1; margin-left: 16px; }
         input[type="checkbox"] { width: 48px; height: 48px; accent-color: var(--rojo-cereza); border-radius: 8px; flex-shrink: 0; }
@@ -44,7 +40,6 @@
         .glass-card.comprado .price-controls { display: flex; justify-content: space-between; align-items: center; }
         .price-input-wrapper { display: flex; align-items: center; background: var(--bg-base); border-radius: 8px; padding: 0 8px; border: 1px solid var(--glass-border); flex-grow: 1; margin-right: 12px; }
         
-        /* Inputs Mobile Optimized */
         input[type="number"], input[type="text"], select, input[type="password"] { background: transparent; border: none; color: white; font-size: 1.1rem; padding: 12px; outline: none; width: 100%; }
         .form-input { background: var(--bg-base); border: 1px solid var(--glass-border); border-radius: 8px; margin-bottom: 12px; }
         #sync-status { position: fixed; top: 0; left: 0; right: 0; background: var(--glass-bg); backdrop-filter: blur(10px); text-align: center; padding: 6px; font-size: 0.8rem; color: var(--text-secondary); z-index: 1000; border-bottom: 1px solid var(--glass-border); }
@@ -170,21 +165,24 @@
     </div>
 
     <script>
-// ==========================================
-        // CONFIGURACIÓN DE URL
         // ==========================================
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbye_QUMDHP4_hZyaNl0BImJUk14FhYJXqwQPDQQxEqaQjzT8mLEi_-oUi0RoCia9Qan/exec'; 
+        // CONFIGURACIÓN DE URL EXACTA
+        // ==========================================
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbye_QUMDHP4_hZyaNl0BImJUk14FhYJXqwQPDQQxEqaQjzT8mLEi_-oUi0RoCia9Qan/exec';
         
         let APP_SECRET_KEY = null;
         let dbCatalogo = [], dbInventario = [], dbDetalleLista = [], dbListas = [], dbHistorico = [];
         let syncQueue = [];
 
-        // ENVOLTORIO DE SEGURIDAD PARA LOCALSTORAGE
+        // ENVOLTORIO DE SEGURIDAD PARA LOCALSTORAGE (Evita colapso en incógnito)
         try {
             APP_SECRET_KEY = localStorage.getItem('app_secure_token') || null;
             syncQueue = JSON.parse(localStorage.getItem('syncQueue')) || [];
-        } catch (e) {
-            console.warn("Acceso a LocalStorage bloqueado. Operando en modo volátil.");
+        } catch (e) { console.warn("Memoria local no disponible."); }
+
+        function guardarTokenLocal(token) {
+            APP_SECRET_KEY = token;
+            try { localStorage.setItem('app_secure_token', token); } catch(e) {}
         }
 
         function cargarCacheLocal() {
@@ -194,7 +192,7 @@
                 dbListas = JSON.parse(localStorage.getItem('dbListas')) || [];
                 dbDetalleLista = JSON.parse(localStorage.getItem('dbDetalleLista')) || [];
                 dbHistorico = JSON.parse(localStorage.getItem('dbHistorico')) || [];
-            } catch (e) { /* Ignorar error */ }
+            } catch (e) {}
         }
 
         function guardarCacheLocal() {
@@ -204,19 +202,17 @@
                 localStorage.setItem('dbListas', JSON.stringify(dbListas));
                 localStorage.setItem('dbDetalleLista', JSON.stringify(dbDetalleLista));
                 localStorage.setItem('dbHistorico', JSON.stringify(dbHistorico));
-            } catch (e) { /* Ignorar error */ }
+            } catch (e) {}
         }
 
-async function invocarBackend(payload) {
-            payload.token = APP_SECRET_KEY; // El token viaja blindado aquí
+        async function invocarBackend(payload) {
+            payload.token = APP_SECRET_KEY; 
             return fetch(GAS_URL, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'text/plain;charset=utf-8'
-                },
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload)
             });
-        }}
+        }
 
         window.onload = () => {
             if (APP_SECRET_KEY) { iniciarSistemaAutenticado(); } 
@@ -231,13 +227,11 @@ async function invocarBackend(payload) {
             btn.innerText = "Verificando..."; btn.disabled = true;
 
             try {
-                // Verificación inicial rápida por GET
                 const response = await fetch(`${GAS_URL}?token=${intento}`);
                 const data = await response.json();
 
                 if (data.status === 'success') {
-                    localStorage.setItem('app_secure_token', intento);
-                    APP_SECRET_KEY = intento;
+                    guardarTokenLocal(intento);
                     document.getElementById('login-error').style.display = 'none';
                     document.getElementById('sync-status').style.display = 'block';
                     
@@ -272,7 +266,8 @@ async function invocarBackend(payload) {
                     guardarCacheLocal(); renderSugerencias(); 
                     document.getElementById('sync-status').innerText = "Conectado ✔";
                 } else { 
-                    localStorage.removeItem('app_secure_token'); APP_SECRET_KEY = null;
+                    APP_SECRET_KEY = null;
+                    try { localStorage.removeItem('app_secure_token'); } catch(e){}
                     document.getElementById('sync-status').style.display = 'none';
                     cambiarVista('view-login');
                 }
@@ -434,7 +429,6 @@ async function invocarBackend(payload) {
                     <div class="price-controls" id="price-ctrl-${item.ID_Articulo}">
                         <div class="price-input-wrapper">
                             <span style="color:var(--text-secondary)">$</span>
-                            <!-- Optimizaciones Móviles: inputmode="decimal" y pattern -->
                             <input type="number" inputmode="decimal" pattern="[0-9]*" step="0.01" id="precio-${item.ID_Articulo}" placeholder="0.00" onkeyup="evaluarTendencia('${item.ID_Articulo}', ${precioAnterior})">
                         </div>
                         <div style="font-size: 0.8rem; text-align:right; min-width:80px;">Último: $${precioAnterior.toFixed(2)}<br><span id="tendencia-${item.ID_Articulo}" style="color:var(--text-secondary)">-</span></div>
@@ -466,7 +460,7 @@ async function invocarBackend(payload) {
                 const input = document.getElementById(`precio-${item.ID_Articulo}`);
                 if (chk && chk.checked && input && input.value) { 
                     item.precio_actual = parseFloat(input.value); 
-                    item.Comprado = true; // Reflejo local inmediato (Optimistic UI)
+                    item.Comprado = true; 
                     return true; 
                 } return false;
             });
@@ -482,12 +476,14 @@ async function invocarBackend(payload) {
                 await invocarBackend({ action: 'sincronizar_compra_batch', data: payload });
                 iniciarSistemaAutenticado(); 
             } catch (e) { 
-                syncQueue.push(...payload); localStorage.setItem('syncQueue', JSON.stringify(syncQueue));
+                try {
+                    syncQueue.push(...payload); 
+                    localStorage.setItem('syncQueue', JSON.stringify(syncQueue));
+                } catch(err) {}
                 document.getElementById('sync-status').innerText = "Transacción Guardada Offline ⚠"; 
             }
         }
 
-        // --- MÓDULO C: INVENTARIO MANUAL ---
         function abrirModuloInventario() {
             const container = document.getElementById('inventario-manual-container');
             container.innerHTML = dbInventario.map(item => `
@@ -526,8 +522,10 @@ async function invocarBackend(payload) {
             } catch(e) { document.getElementById('sync-status').innerText = "Guardado Localmente ⚠"; }
         }
 
-        // Registro de Service Worker para capacidades Offline PWA
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(e => console.log('SW Falló:', e))); }
+        // Service Worker
+        if ('serviceWorker' in navigator) { 
+            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(e => console.log('SW Falló:', e))); 
+        }
     </script>
 </body>
 </html>
