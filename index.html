@@ -195,17 +195,16 @@
             localStorage.setItem('dbHistorico', JSON.stringify(dbHistorico));
         }
 
-        async function invocarBackend(payload) {
-            payload.token = APP_SECRET_KEY; // Respaldo en payload para bypass de preflight
+async function invocarBackend(payload) {
+            payload.token = APP_SECRET_KEY; // El token viaja blindado aquí
             return fetch(GAS_URL, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'text/plain;charset=utf-8',
-                    'X-API-KEY': APP_SECRET_KEY // Cumplimiento estricto del requerimiento X-API-KEY
+                    'Content-Type': 'text/plain;charset=utf-8'
                 },
                 body: JSON.stringify(payload)
             });
-        }
+        }}
 
         window.onload = () => {
             if (APP_SECRET_KEY) { iniciarSistemaAutenticado(); } 
