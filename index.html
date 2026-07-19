@@ -170,29 +170,41 @@
     </div>
 
     <script>
-        // ==========================================
+// ==========================================
         // CONFIGURACIÓN DE URL
         // ==========================================
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbye_QUMDHP4_hZyaNl0BImJUkl4FhYJXqwQPDQQxEqaQjzT8mLEi_-oUi0RoCia9Qan/exec'; 
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbye_QUMDHP4_hZyaNl0BImJUk14FhYJXqwQPDQQxEqaQjzT8mLEi_-oUi0RoCia9Qan/exec'; 
         
-        let APP_SECRET_KEY = localStorage.getItem('app_secure_token') || null;
+        let APP_SECRET_KEY = null;
         let dbCatalogo = [], dbInventario = [], dbDetalleLista = [], dbListas = [], dbHistorico = [];
-        let syncQueue = JSON.parse(localStorage.getItem('syncQueue')) || [];
+        let syncQueue = [];
+
+        // ENVOLTORIO DE SEGURIDAD PARA LOCALSTORAGE
+        try {
+            APP_SECRET_KEY = localStorage.getItem('app_secure_token') || null;
+            syncQueue = JSON.parse(localStorage.getItem('syncQueue')) || [];
+        } catch (e) {
+            console.warn("Acceso a LocalStorage bloqueado. Operando en modo volátil.");
+        }
 
         function cargarCacheLocal() {
-            dbCatalogo = JSON.parse(localStorage.getItem('dbCatalogo')) || [];
-            dbInventario = JSON.parse(localStorage.getItem('dbInventario')) || [];
-            dbListas = JSON.parse(localStorage.getItem('dbListas')) || [];
-            dbDetalleLista = JSON.parse(localStorage.getItem('dbDetalleLista')) || [];
-            dbHistorico = JSON.parse(localStorage.getItem('dbHistorico')) || [];
+            try {
+                dbCatalogo = JSON.parse(localStorage.getItem('dbCatalogo')) || [];
+                dbInventario = JSON.parse(localStorage.getItem('dbInventario')) || [];
+                dbListas = JSON.parse(localStorage.getItem('dbListas')) || [];
+                dbDetalleLista = JSON.parse(localStorage.getItem('dbDetalleLista')) || [];
+                dbHistorico = JSON.parse(localStorage.getItem('dbHistorico')) || [];
+            } catch (e) { /* Ignorar error */ }
         }
 
         function guardarCacheLocal() {
-            localStorage.setItem('dbCatalogo', JSON.stringify(dbCatalogo));
-            localStorage.setItem('dbInventario', JSON.stringify(dbInventario));
-            localStorage.setItem('dbListas', JSON.stringify(dbListas));
-            localStorage.setItem('dbDetalleLista', JSON.stringify(dbDetalleLista));
-            localStorage.setItem('dbHistorico', JSON.stringify(dbHistorico));
+            try {
+                localStorage.setItem('dbCatalogo', JSON.stringify(dbCatalogo));
+                localStorage.setItem('dbInventario', JSON.stringify(dbInventario));
+                localStorage.setItem('dbListas', JSON.stringify(dbListas));
+                localStorage.setItem('dbDetalleLista', JSON.stringify(dbDetalleLista));
+                localStorage.setItem('dbHistorico', JSON.stringify(dbHistorico));
+            } catch (e) { /* Ignorar error */ }
         }
 
 async function invocarBackend(payload) {
