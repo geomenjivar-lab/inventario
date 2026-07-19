@@ -2,11 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <!-- Viewport estricto para evitar zoom indeseado al escribir en móvil -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario & Compras</title>
     <link rel="manifest" href="manifest.json">
     <style>
         :root {
+            /* Modo OLED / Glassmorphism / Cherry Red Accents */
             --rojo-cereza: #D2042D; --bg-base: #000000; --text-primary: #F8FAFC; --text-secondary: #94A3B8;
             --glass-bg: rgba(15, 23, 42, 0.65); --glass-border: rgba(255, 255, 255, 0.08); --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
@@ -14,25 +16,35 @@
             :root { --bg-base: #F1F5F9; --text-primary: #0F172A; --text-secondary: #475569; --glass-bg: rgba(255, 255, 255, 0.7); --glass-border: rgba(0, 0, 0, 0.05); }
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-base); color: var(--text-primary); padding: 16px; padding-bottom: 90px; }
+        body { background-color: var(--bg-base); color: var(--text-primary); padding: 16px; padding-bottom: 100px; transition: background 0.3s ease; }
+        
         .glass-card { background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: var(--glass-shadow); }
         .view { display: none; animation: fadeIn 0.3s; }
         .view.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
         h1 { font-size: 1.8rem; margin-bottom: 4px; }
         .subtitle { color: var(--text-secondary); margin-bottom: 24px; font-size: 0.9rem; }
         .suggestions-container { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 12px; scrollbar-width: none; }
         .chip { background: rgba(210, 4, 45, 0.15); border: 1px solid var(--rojo-cereza); color: #ffb3b3; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; white-space: nowrap; }
-        .btn-primary { background: var(--rojo-cereza); color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 600; width: 100%; font-size: 1rem; cursor: pointer; }
-        .btn-secondary { background: transparent; color: white; border: 1px solid var(--glass-border); padding: 12px; border-radius: 12px; width: 100%; font-size: 0.9rem; margin-top:8px; cursor: pointer;}
-        .fab { position: fixed; bottom: 24px; right: 24px; background-color: var(--rojo-cereza); color: white; border: none; border-radius: 28px; height: 56px; padding: 0 24px; font-size: 1rem; font-weight: bold; z-index: 1000; box-shadow: 0 8px 24px rgba(210, 4, 45, 0.4); }
+        
+        .btn-primary { background: var(--rojo-cereza); color: white; border: none; padding: 14px 24px; border-radius: 12px; font-weight: 600; width: 100%; font-size: 1rem; cursor: pointer; transition: transform 0.1s; }
+        .btn-primary:active { transform: scale(0.97); }
+        .btn-secondary { background: transparent; color: white; border: 1px solid var(--glass-border); padding: 14px; border-radius: 12px; width: 100%; font-size: 0.9rem; margin-top:8px; cursor: pointer; }
+        .fab { position: fixed; bottom: 24px; right: 24px; background-color: var(--rojo-cereza); color: white; border: none; border-radius: 28px; height: 56px; padding: 0 24px; font-size: 1rem; font-weight: bold; z-index: 1000; box-shadow: 0 8px 24px rgba(210, 4, 45, 0.4); display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
+        .fab:active { transform: scale(0.95); }
+        
+        /* Checkboxes Mobile-First 48px */
         .item-header { display: flex; align-items: center; justify-content: space-between; }
         .item-info { flex-grow: 1; margin-left: 16px; }
-        input[type="checkbox"] { width: 48px; height: 48px; accent-color: var(--rojo-cereza); border-radius: 8px; }
+        input[type="checkbox"] { width: 48px; height: 48px; accent-color: var(--rojo-cereza); border-radius: 8px; flex-shrink: 0; }
+        
         .glass-card.comprado { opacity: 0.6; border-left: 4px solid var(--rojo-cereza); }
         .price-controls { display: none; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px; margin-top: 12px; }
         .glass-card.comprado .price-controls { display: flex; justify-content: space-between; align-items: center; }
-        .price-input-wrapper { display: flex; align-items: center; background: var(--bg-base); border-radius: 8px; padding: 0 8px; border: 1px solid var(--glass-border); }
+        .price-input-wrapper { display: flex; align-items: center; background: var(--bg-base); border-radius: 8px; padding: 0 8px; border: 1px solid var(--glass-border); flex-grow: 1; margin-right: 12px; }
+        
+        /* Inputs Mobile Optimized */
         input[type="number"], input[type="text"], select, input[type="password"] { background: transparent; border: none; color: white; font-size: 1.1rem; padding: 12px; outline: none; width: 100%; }
         .form-input { background: var(--bg-base); border: 1px solid var(--glass-border); border-radius: 8px; margin-bottom: 12px; }
         #sync-status { position: fixed; top: 0; left: 0; right: 0; background: var(--glass-bg); backdrop-filter: blur(10px); text-align: center; padding: 6px; font-size: 0.8rem; color: var(--text-secondary); z-index: 1000; border-bottom: 1px solid var(--glass-border); }
@@ -47,7 +59,7 @@
         <div style="text-align: center; margin-bottom: 30px;">
             <h1 style="font-size: 2.5rem; margin-bottom: 8px;">🔒</h1>
             <h1>Bóveda Segura</h1>
-            <p class="subtitle">Ingresa la clave de acceso al sistema</p>
+            <p class="subtitle">Ingresa la clave maestra del hogar</p>
         </div>
         <div class="glass-card">
             <div class="form-input">
@@ -98,6 +110,7 @@
                 <select id="cat-categoria">
                     <option value="Abarrotes">Abarrotes</option><option value="Lácteos">Lácteos</option>
                     <option value="Carnes">Carnes</option><option value="Limpieza">Limpieza</option>
+                    <option value="Hogar">Hogar</option>
                 </select>
             </div>
             <button class="btn-primary" onclick="guardarArticulo()">Guardar</button>
@@ -157,7 +170,10 @@
     </div>
 
     <script>
-        const GAS_URL = 'TU_URL_DE_APPS_SCRIPT_AQUI'; 
+        // ==========================================
+        // CONFIGURACIÓN DE URL
+        // ==========================================
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbye_QUMDHP4_hZyaNl0BImJUkl4FhYJXqwQPDQQxEqaQjzT8mLEi_-oUi0RoCia9Qan/exec'; 
         
         let APP_SECRET_KEY = localStorage.getItem('app_secure_token') || null;
         let dbCatalogo = [], dbInventario = [], dbDetalleLista = [], dbListas = [], dbHistorico = [];
@@ -180,10 +196,13 @@
         }
 
         async function invocarBackend(payload) {
-            payload.token = APP_SECRET_KEY;
+            payload.token = APP_SECRET_KEY; // Respaldo en payload para bypass de preflight
             return fetch(GAS_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                headers: { 
+                    'Content-Type': 'text/plain;charset=utf-8',
+                    'X-API-KEY': APP_SECRET_KEY // Cumplimiento estricto del requerimiento X-API-KEY
+                },
                 body: JSON.stringify(payload)
             });
         }
@@ -201,6 +220,7 @@
             btn.innerText = "Verificando..."; btn.disabled = true;
 
             try {
+                // Verificación inicial rápida por GET
                 const response = await fetch(`${GAS_URL}?token=${intento}`);
                 const data = await response.json();
 
@@ -217,7 +237,7 @@
                     
                     cambiarVista('view-dashboard'); renderSugerencias();
                     document.getElementById('sync-status').innerText = "Conectado ✔";
-                } else { throw new Error(); }
+                } else { throw new Error("Acceso denegado"); }
             } catch (e) {
                 document.getElementById('login-error').style.display = 'block';
                 btn.innerText = "Desbloquear App"; btn.disabled = false;
@@ -228,7 +248,7 @@
             cargarCacheLocal(); 
             cambiarVista('view-dashboard'); renderSugerencias();
             document.getElementById('sync-status').style.display = 'block';
-            document.getElementById('sync-status').innerText = "Actualizando datos...";
+            document.getElementById('sync-status').innerText = "Sincronizando con Sheets...";
             
             try {
                 const response = await fetch(`${GAS_URL}?token=${APP_SECRET_KEY}`);
@@ -271,7 +291,7 @@
             container.innerHTML = dbCatalogo.map(item => `
                 <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center;" onclick="prepararEdicion('${item.ID_Articulo}')">
                     <div><strong>${item.Nombre_Articulo}</strong><br><span style="font-size:0.8rem; color:var(--text-secondary)">${item.Categoria}</span></div>
-                    <span style="color:var(--rojo-cereza)">✎</span>
+                    <span style="color:var(--rojo-cereza); font-size:1.2rem;">✎</span>
                 </div>
             `).join('');
             cambiarVista('view-catalogo');
@@ -316,6 +336,7 @@
         function abrirSeleccionArticulos() {
             const container = document.getElementById('seleccion-articulos-container');
             const articulosBajos = dbInventario.filter(i => i.Nivel_Cualitativo === 'Bajo').map(i => i.ID_Articulo);
+            
             container.innerHTML = dbCatalogo.map(item => {
                 const esSugerido = articulosBajos.includes(item.ID_Articulo);
                 return `
@@ -336,6 +357,8 @@
             if (checkboxes.length === 0) return alert("Selecciona artículos.");
 
             const nuevoIdLista = 'LST-' + Date.now();
+            dbListas.push({ ID_Lista: nuevoIdLista, Nombre_Lista: nombreLista, Fecha_Creacion: new Date().toISOString(), Estado: 'Activa' });
+
             let nuevosDetalles = Array.from(checkboxes).map(chk => ({
                 ID_Detalle: 'DET-' + Date.now() + Math.floor(Math.random()*100),
                 ID_Lista: nuevoIdLista, ID_Articulo: chk.value, Cantidad_Planificada: 1, Comprado: false, Precio_Registrado: 0
@@ -364,6 +387,8 @@
 
             document.getElementById('sync-status').innerText = "Duplicando...";
             const idNueva = 'LST-'+Date.now();
+            dbListas.push({ ID_Lista: idNueva, Nombre_Lista: nombre, Fecha_Creacion: new Date().toISOString(), Estado: 'Activa' });
+            
             const itemsViejos = dbDetalleLista.filter(i => i.ID_Lista === idVieja);
             itemsViejos.forEach(i => dbDetalleLista.push({...i, ID_Lista: idNueva, ID_Detalle: 'DET-'+Date.now()+Math.random(), Comprado: false}));
 
@@ -384,6 +409,7 @@
             const container = document.getElementById('checklist-container');
             const pendientes = dbDetalleLista.filter(item => !item.Comprado);
             document.getElementById('items-count').innerText = pendientes.length;
+            
             if (pendientes.length === 0) return container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-secondary);">No hay artículos pendientes.</div>';
 
             container.innerHTML = pendientes.map(item => {
@@ -395,11 +421,12 @@
                         <div class="item-info"><div style="font-weight: 600; font-size: 1.1rem;">${getNombreArticulo(item.ID_Articulo)}</div></div>
                     </div>
                     <div class="price-controls" id="price-ctrl-${item.ID_Articulo}">
-                        <div class="price-input-wrapper" style="width: 50%;">
+                        <div class="price-input-wrapper">
                             <span style="color:var(--text-secondary)">$</span>
-                            <input type="number" step="0.01" id="precio-${item.ID_Articulo}" placeholder="0.00" onkeyup="evaluarTendencia('${item.ID_Articulo}', ${precioAnterior})">
+                            <!-- Optimizaciones Móviles: inputmode="decimal" y pattern -->
+                            <input type="number" inputmode="decimal" pattern="[0-9]*" step="0.01" id="precio-${item.ID_Articulo}" placeholder="0.00" onkeyup="evaluarTendencia('${item.ID_Articulo}', ${precioAnterior})">
                         </div>
-                        <div style="font-size: 0.8rem; text-align:right;">Último: $${precioAnterior.toFixed(2)}<br><span id="tendencia-${item.ID_Articulo}" style="color:var(--text-secondary)">-</span></div>
+                        <div style="font-size: 0.8rem; text-align:right; min-width:80px;">Último: $${precioAnterior.toFixed(2)}<br><span id="tendencia-${item.ID_Articulo}" style="color:var(--text-secondary)">-</span></div>
                     </div>
                 </div>`
             }).join('');
@@ -428,10 +455,11 @@
                 const input = document.getElementById(`precio-${item.ID_Articulo}`);
                 if (chk && chk.checked && input && input.value) { 
                     item.precio_actual = parseFloat(input.value); 
-                    item.Comprado = true; 
+                    item.Comprado = true; // Reflejo local inmediato (Optimistic UI)
                     return true; 
                 } return false;
             });
+            
             if (itemsProcesar.length === 0) return alert("Selecciona y asigna precio a los productos.");
             
             const payload = itemsProcesar.map(item => ({ id_articulo: item.ID_Articulo, id_lista: item.ID_Lista, cantidad: item.Cantidad_Planificada, precio: item.precio_actual }));
@@ -448,13 +476,16 @@
             }
         }
 
+        // --- MÓDULO C: INVENTARIO MANUAL ---
         function abrirModuloInventario() {
             const container = document.getElementById('inventario-manual-container');
             container.innerHTML = dbInventario.map(item => `
                 <div class="glass-card">
                     <div style="font-weight: 600; margin-bottom:8px;">${getNombreArticulo(item.ID_Articulo)}</div>
                     <div style="display:flex; gap:10px;">
-                        <div class="form-input" style="flex:1; margin:0;"><input type="number" id="inv-cant-${item.ID_Articulo}" value="${item.Existencia_Cuantitativa}" style="text-align:center;"></div>
+                        <div class="form-input" style="flex:1; margin:0;">
+                            <input type="number" inputmode="decimal" pattern="[0-9]*" id="inv-cant-${item.ID_Articulo}" value="${item.Existencia_Cuantitativa}" style="text-align:center;">
+                        </div>
                         <div class="form-input" style="flex:2; margin:0;">
                             <select id="inv-nivel-${item.ID_Articulo}">
                                 <option value="Alto" ${item.Nivel_Cualitativo==='Alto'?'selected':''}>Alto</option>
@@ -484,7 +515,8 @@
             } catch(e) { document.getElementById('sync-status').innerText = "Guardado Localmente ⚠"; }
         }
 
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW Falló:', e))); }
+        // Registro de Service Worker para capacidades Offline PWA
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(e => console.log('SW Falló:', e))); }
     </script>
 </body>
 </html>
