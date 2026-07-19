@@ -10,6 +10,9 @@
             --rojo-cereza: #D2042D; --bg-base: #000000; --text-primary: #F8FAFC; --text-secondary: #94A3B8;
             --glass-bg: rgba(15, 23, 42, 0.65); --glass-border: rgba(255, 255, 255, 0.08); --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
+        @media (prefers-color-scheme: light) {
+            :root { --bg-base: #F1F5F9; --text-primary: #0F172A; --text-secondary: #475569; --glass-bg: rgba(255, 255, 255, 0.7); --glass-border: rgba(0, 0, 0, 0.05); }
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-base); color: var(--text-primary); padding: 16px; padding-bottom: 90px; }
         .glass-card { background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: var(--glass-shadow); }
@@ -30,17 +33,33 @@
         .price-controls { display: none; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px; margin-top: 12px; }
         .glass-card.comprado .price-controls { display: flex; justify-content: space-between; align-items: center; }
         .price-input-wrapper { display: flex; align-items: center; background: var(--bg-base); border-radius: 8px; padding: 0 8px; border: 1px solid var(--glass-border); }
-        input[type="number"], input[type="text"], select { background: transparent; border: none; color: white; font-size: 1.1rem; padding: 12px; outline: none; width: 100%; }
+        input[type="number"], input[type="text"], select, input[type="password"] { background: transparent; border: none; color: white; font-size: 1.1rem; padding: 12px; outline: none; width: 100%; }
         .form-input { background: var(--bg-base); border: 1px solid var(--glass-border); border-radius: 8px; margin-bottom: 12px; }
         #sync-status { position: fixed; top: 0; left: 0; right: 0; background: var(--glass-bg); backdrop-filter: blur(10px); text-align: center; padding: 6px; font-size: 0.8rem; color: var(--text-secondary); z-index: 1000; border-bottom: 1px solid var(--glass-border); }
     </style>
 </head>
 <body>
 
-    <div id="sync-status">Conectando...</div>
+    <div id="sync-status" style="display:none;">Iniciando sistema...</div>
+
+    <!-- PANTALLA DE SEGURIDAD (ZERO-TRUST) -->
+    <div id="view-login" class="view active" style="display: flex; flex-direction: column; justify-content: center; height: 80vh;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="font-size: 2.5rem; margin-bottom: 8px;">🔒</h1>
+            <h1>Bóveda Segura</h1>
+            <p class="subtitle">Ingresa la clave de acceso al sistema</p>
+        </div>
+        <div class="glass-card">
+            <div class="form-input">
+                <input type="password" id="input-master-key" placeholder="••••••••" style="text-align: center; font-size: 1.5rem; letter-spacing: 4px;">
+            </div>
+            <button class="btn-primary" onclick="verificarAcceso()" id="btn-login">Desbloquear App</button>
+            <p id="login-error" style="color: var(--rojo-cereza); text-align: center; margin-top: 12px; font-size: 0.9rem; display: none;">Clave incorrecta o sin conexión.</p>
+        </div>
+    </div>
 
     <!-- MÓDULO A: DASHBOARD -->
-    <div id="view-dashboard" class="view active">
+    <div id="view-dashboard" class="view">
         <div style="margin-top: 30px;">
             <h1>Mi Inventario</h1>
         </div>
@@ -71,7 +90,7 @@
             <button onclick="cambiarVista('view-dashboard')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
             <h1>Catálogo Maestro</h1>
         </div>
-        <div class="glass-card" style="margin-bottom: 24px;" id="form-catalogo">
+        <div class="glass-card" style="margin-bottom: 24px;">
             <h3 style="margin-bottom: 12px;" id="cat-titulo">Nuevo Artículo</h3>
             <input type="hidden" id="cat-id">
             <div class="form-input"><input type="text" id="cat-nombre" placeholder="Nombre del artículo"></div>
@@ -82,7 +101,7 @@
                 </select>
             </div>
             <button class="btn-primary" onclick="guardarArticulo()">Guardar</button>
-            <button class="btn-secondary" onclick="limpiarFormCatalogo()">Cancelar Edición</button>
+            <button class="btn-secondary" onclick="limpiarFormCatalogo()">Limpiar Formulario</button>
         </div>
         <div id="lista-catalogo-container"></div>
     </div>
@@ -93,14 +112,12 @@
             <button onclick="cambiarVista('view-dashboard')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
             <h1>Planificar Compra</h1>
         </div>
-        <!-- Opción 1: Duplicar -->
         <div class="glass-card">
             <h3 style="margin-bottom: 12px;">Duplicar Lista Anterior</h3>
             <div class="form-input"><select id="select-duplicar"></select></div>
             <div class="form-input"><input type="text" id="dup-nombre" placeholder="Nombre (ej. Quincena Nueva)"></div>
             <button class="btn-secondary" style="border-color:var(--rojo-cereza); color:var(--rojo-cereza);" onclick="duplicarLista()">Duplicar Lista</button>
         </div>
-        <!-- Opción 2: Nueva desde cero -->
         <div class="glass-card">
             <h3 style="margin-bottom: 12px;">Nueva desde cero</h3>
             <div class="form-input"><input type="text" id="lista-nombre" placeholder="Nombre (ej. Supermercado Hoy)"></div>
@@ -108,7 +125,7 @@
         </div>
     </div>
 
-    <!-- SELECCIÓN PARA NUEVA LISTA -->
+    <!-- SELECCIÓN INTELIGENTE -->
     <div id="view-seleccion-art" class="view">
         <div style="margin-top: 30px; margin-bottom: 20px;">
             <button onclick="cambiarVista('view-nueva-lista')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
@@ -118,7 +135,7 @@
         <button class="fab" onclick="crearNuevaLista()">Crear Lista</button>
     </div>
 
-    <!-- MÓDULO C: ADMINISTRACIÓN MANUAL DE INVENTARIO -->
+    <!-- MÓDULO C: INVENTARIO MANUAL -->
     <div id="view-inventario" class="view">
         <div style="margin-top: 30px; margin-bottom: 20px;">
             <button onclick="cambiarVista('view-dashboard')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
@@ -128,39 +145,107 @@
         <button class="fab" onclick="sincronizarInventarioManual()">Guardar Cambios</button>
     </div>
 
-    <!-- MÓDULO B: SUPERMERCADO (HISTÓRICO REPARADO) -->
+    <!-- MÓDULO B: SUPERMERCADO -->
     <div id="view-supermercado" class="view">
         <div style="margin-top: 30px; margin-bottom: 20px;">
             <button onclick="cambiarVista('view-dashboard')" style="background:none; border:none; color:var(--rojo-cereza); font-size:1rem; margin-bottom:10px;">← Volver</button>
             <h1>Supermercado</h1>
             <p class="subtitle"><span id="items-count">0</span> artículos pendientes</p>
         </div>
-        <div id="checklist-container"></div>
+        <div id="checklist-container" style="margin-bottom: 80px;"></div>
         <button class="fab" onclick="concluirCompra()">Concluir Compra</button>
     </div>
 
     <script>
-        const GAS_URL = 'https://docs.google.com/spreadsheets/d/16C1X2EhorfAVzZmJfzZybtaUImB6E_P7p5bgvlAbpOY/edit?gid=0#gid=0'; 
-        const API_TOKEN = 'Creaciones_960106$';       
-
+        const GAS_URL = 'TU_URL_DE_APPS_SCRIPT_AQUI'; 
+        
+        let APP_SECRET_KEY = localStorage.getItem('app_secure_token') || null;
         let dbCatalogo = [], dbInventario = [], dbDetalleLista = [], dbListas = [], dbHistorico = [];
         let syncQueue = JSON.parse(localStorage.getItem('syncQueue')) || [];
 
-        async function initApp() {
-            document.getElementById('sync-status').innerText = "Sincronizando con Sheets...";
+        function cargarCacheLocal() {
+            dbCatalogo = JSON.parse(localStorage.getItem('dbCatalogo')) || [];
+            dbInventario = JSON.parse(localStorage.getItem('dbInventario')) || [];
+            dbListas = JSON.parse(localStorage.getItem('dbListas')) || [];
+            dbDetalleLista = JSON.parse(localStorage.getItem('dbDetalleLista')) || [];
+            dbHistorico = JSON.parse(localStorage.getItem('dbHistorico')) || [];
+        }
+
+        function guardarCacheLocal() {
+            localStorage.setItem('dbCatalogo', JSON.stringify(dbCatalogo));
+            localStorage.setItem('dbInventario', JSON.stringify(dbInventario));
+            localStorage.setItem('dbListas', JSON.stringify(dbListas));
+            localStorage.setItem('dbDetalleLista', JSON.stringify(dbDetalleLista));
+            localStorage.setItem('dbHistorico', JSON.stringify(dbHistorico));
+        }
+
+        async function invocarBackend(payload) {
+            payload.token = APP_SECRET_KEY;
+            return fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+        }
+
+        window.onload = () => {
+            if (APP_SECRET_KEY) { iniciarSistemaAutenticado(); } 
+            else { cambiarVista('view-login'); }
+        };
+
+        async function verificarAcceso() {
+            const intento = document.getElementById('input-master-key').value;
+            if (!intento) return;
+            
+            const btn = document.getElementById('btn-login');
+            btn.innerText = "Verificando..."; btn.disabled = true;
+
             try {
-                const response = await fetch(`${GAS_URL}?token=${API_TOKEN}`);
+                const response = await fetch(`${GAS_URL}?token=${intento}`);
                 const data = await response.json();
+
                 if (data.status === 'success') {
-                    dbCatalogo = data.catalogo || [];
-                    dbInventario = data.inventario || [];
-                    dbListas = data.listas_activas || [];
-                    dbDetalleLista = data.detalle_lista || [];
+                    localStorage.setItem('app_secure_token', intento);
+                    APP_SECRET_KEY = intento;
+                    document.getElementById('login-error').style.display = 'none';
+                    document.getElementById('sync-status').style.display = 'block';
+                    
+                    dbCatalogo = data.catalogo || []; dbInventario = data.inventario || [];
+                    dbListas = data.listas_activas || []; dbDetalleLista = data.detalle_lista || [];
                     dbHistorico = data.historico || [];
+                    guardarCacheLocal();
+                    
+                    cambiarVista('view-dashboard'); renderSugerencias();
                     document.getElementById('sync-status').innerText = "Conectado ✔";
                 } else { throw new Error(); }
-            } catch (e) { document.getElementById('sync-status').innerText = "Offline ⚠"; }
-            renderSugerencias();
+            } catch (e) {
+                document.getElementById('login-error').style.display = 'block';
+                btn.innerText = "Desbloquear App"; btn.disabled = false;
+            }
+        }
+
+        async function iniciarSistemaAutenticado() {
+            cargarCacheLocal(); 
+            cambiarVista('view-dashboard'); renderSugerencias();
+            document.getElementById('sync-status').style.display = 'block';
+            document.getElementById('sync-status').innerText = "Actualizando datos...";
+            
+            try {
+                const response = await fetch(`${GAS_URL}?token=${APP_SECRET_KEY}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    dbCatalogo = data.catalogo || []; dbInventario = data.inventario || [];
+                    dbListas = data.listas_activas || []; dbDetalleLista = data.detalle_lista || [];
+                    dbHistorico = data.historico || [];
+                    guardarCacheLocal(); renderSugerencias(); 
+                    document.getElementById('sync-status').innerText = "Conectado ✔";
+                } else { 
+                    localStorage.removeItem('app_secure_token'); APP_SECRET_KEY = null;
+                    document.getElementById('sync-status').style.display = 'none';
+                    cambiarVista('view-login');
+                }
+            } catch (e) { document.getElementById('sync-status').innerText = "Modo Offline (Caché Local) ⚠"; }
         }
 
         function cambiarVista(idVista) {
@@ -177,13 +262,10 @@
         function renderSugerencias() {
             const container = document.getElementById('sugerencias-container');
             const sugerencias = dbInventario.filter(item => item.Nivel_Cualitativo === 'Bajo');
-            if(sugerencias.length === 0) return container.innerHTML = '<span style="color:var(--text-secondary)">Todo en orden.</span>';
+            if(sugerencias.length === 0) return container.innerHTML = '<span style="color:var(--text-secondary)">Inventario óptimo.</span>';
             container.innerHTML = sugerencias.map(item => `<div class="chip">⚠ ${getNombreArticulo(item.ID_Articulo)}</div>`).join('');
         }
 
-        // ==========================================
-        // MÓDULO A: CATÁLOGO Y EDICIÓN
-        // ==========================================
         function abrirModuloCatalogo() {
             const container = document.getElementById('lista-catalogo-container');
             container.innerHTML = dbCatalogo.map(item => `
@@ -223,22 +305,56 @@
             if(id) { const idx = dbCatalogo.findIndex(i => i.ID_Articulo === id); if(idx>-1) dbCatalogo[idx] = payload; } 
             else { dbCatalogo.push(payload); }
             
-            limpiarFormCatalogo(); abrirModuloCatalogo();
+            guardarCacheLocal(); limpiarFormCatalogo(); abrirModuloCatalogo();
 
             try {
-                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: action, data: id ? payload : [payload], token: API_TOKEN }) });
-                document.getElementById('sync-status').innerText = "Actualizado ✔";
-            } catch(e) { document.getElementById('sync-status').innerText = "Error ⚠"; }
+                await invocarBackend({ action: action, data: [payload] });
+                document.getElementById('sync-status').innerText = "Catálogo Actualizado ✔";
+            } catch(e) { document.getElementById('sync-status').innerText = "Guardado Localmente ⚠"; }
         }
 
-        // ==========================================
-        // MÓDULO A.2: DUPLICAR LISTA
-        // ==========================================
+        function abrirSeleccionArticulos() {
+            const container = document.getElementById('seleccion-articulos-container');
+            const articulosBajos = dbInventario.filter(i => i.Nivel_Cualitativo === 'Bajo').map(i => i.ID_Articulo);
+            container.innerHTML = dbCatalogo.map(item => {
+                const esSugerido = articulosBajos.includes(item.ID_Articulo);
+                return `
+                <div style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px;">
+                    <input type="checkbox" class="chk-nueva-lista" value="${item.ID_Articulo}" ${esSugerido ? 'checked' : ''}> 
+                    <div>
+                        <div style="font-size:1.1rem">${item.Nombre_Articulo}</div>
+                        ${esSugerido ? '<span style="color:var(--rojo-cereza); font-size:0.8rem;">Sugerencia de Inventario</span>' : ''}
+                    </div>
+                </div>`
+            }).join('');
+            cambiarVista('view-seleccion-art');
+        }
+
+        async function crearNuevaLista() {
+            const nombreLista = document.getElementById('lista-nombre').value || 'Lista Activa';
+            const checkboxes = document.querySelectorAll('.chk-nueva-lista:checked');
+            if (checkboxes.length === 0) return alert("Selecciona artículos.");
+
+            const nuevoIdLista = 'LST-' + Date.now();
+            let nuevosDetalles = Array.from(checkboxes).map(chk => ({
+                ID_Detalle: 'DET-' + Date.now() + Math.floor(Math.random()*100),
+                ID_Lista: nuevoIdLista, ID_Articulo: chk.value, Cantidad_Planificada: 1, Comprado: false, Precio_Registrado: 0
+            }));
+            
+            dbDetalleLista.push(...nuevosDetalles); guardarCacheLocal();
+            document.getElementById('sync-status').innerText = "Creando Lista...";
+            cambiarVista('view-dashboard'); renderChecklist();
+
+            try {
+                await invocarBackend({ action: 'crear_lista', data: nuevosDetalles, nombre: nombreLista });
+                document.getElementById('sync-status').innerText = "Lista Guardada ✔";
+            } catch(e) { document.getElementById('sync-status').innerText = "Creada en Caché ⚠"; }
+        }
+
         function renderOpcionesDuplicar() {
             const select = document.getElementById('select-duplicar');
-            // Agrupar listas únicas para mostrar en el dropdown
-            select.innerHTML = '<option value="">Selecciona una lista anterior</option>' + 
-                dbListas.map(l => `<option value="${l.ID_Lista}">${l.Nombre_Lista} (${l.Fecha_Creacion.substring(0,10)})</option>`).join('');
+            select.innerHTML = '<option value="">Selecciona lista anterior</option>' + 
+                dbListas.map(l => `<option value="${l.ID_Lista}">${l.Nombre_Lista} (${String(l.Fecha_Creacion).substring(0,10)})</option>`).join('');
         }
 
         async function duplicarLista() {
@@ -248,26 +364,19 @@
 
             document.getElementById('sync-status').innerText = "Duplicando...";
             const idNueva = 'LST-'+Date.now();
-            
-            // Simular localmente
             const itemsViejos = dbDetalleLista.filter(i => i.ID_Lista === idVieja);
             itemsViejos.forEach(i => dbDetalleLista.push({...i, ID_Lista: idNueva, ID_Detalle: 'DET-'+Date.now()+Math.random(), Comprado: false}));
 
-            cambiarVista('view-dashboard');
+            guardarCacheLocal(); cambiarVista('view-dashboard');
             try {
-                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'duplicar_lista', id_vieja: idVieja, id_nueva: idNueva, nombre: nombre, token: API_TOKEN }) });
+                await invocarBackend({ action: 'duplicar_lista', id_vieja: idVieja, id_nueva: idNueva, nombre: nombre });
                 document.getElementById('sync-status').innerText = "Lista Duplicada ✔";
-            } catch(e) { document.getElementById('sync-status').innerText = "Error ⚠"; }
+            } catch(e) { document.getElementById('sync-status').innerText = "Duplicada en Caché ⚠"; }
         }
 
-        // ==========================================
-        // MÓDULO B: HISTÓRICO REPARADO
-        // ==========================================
         function getUltimoPrecio(idArticulo) {
-            // Filtrar históricos del artículo y tomar el último
             const precios = dbHistorico.filter(h => h.ID_Articulo === idArticulo);
             if(precios.length === 0) return 0;
-            // Asumiendo que están ordenados cronológicamente al hacer appendRow
             return parseFloat(precios[precios.length - 1].Precio);
         }
 
@@ -275,26 +384,22 @@
             const container = document.getElementById('checklist-container');
             const pendientes = dbDetalleLista.filter(item => !item.Comprado);
             document.getElementById('items-count').innerText = pendientes.length;
-            
+            if (pendientes.length === 0) return container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-secondary);">No hay artículos pendientes.</div>';
+
             container.innerHTML = pendientes.map(item => {
                 const precioAnterior = getUltimoPrecio(item.ID_Articulo);
                 return `
                 <div class="glass-card" id="card-${item.ID_Articulo}">
                     <div class="item-header">
                         <input type="checkbox" id="chk-${item.ID_Articulo}" onchange="toggleComprado('${item.ID_Articulo}')">
-                        <div class="item-info">
-                            <div style="font-weight: 600; font-size: 1.1rem;">${getNombreArticulo(item.ID_Articulo)}</div>
-                        </div>
+                        <div class="item-info"><div style="font-weight: 600; font-size: 1.1rem;">${getNombreArticulo(item.ID_Articulo)}</div></div>
                     </div>
                     <div class="price-controls" id="price-ctrl-${item.ID_Articulo}">
                         <div class="price-input-wrapper" style="width: 50%;">
                             <span style="color:var(--text-secondary)">$</span>
                             <input type="number" step="0.01" id="precio-${item.ID_Articulo}" placeholder="0.00" onkeyup="evaluarTendencia('${item.ID_Articulo}', ${precioAnterior})">
                         </div>
-                        <div style="font-size: 0.8rem; text-align:right;">
-                            Último: $${precioAnterior.toFixed(2)}<br>
-                            <span id="tendencia-${item.ID_Articulo}" style="color:var(--text-secondary)">-</span>
-                        </div>
+                        <div style="font-size: 0.8rem; text-align:right;">Último: $${precioAnterior.toFixed(2)}<br><span id="tendencia-${item.ID_Articulo}" style="color:var(--text-secondary)">-</span></div>
                     </div>
                 </div>`
             }).join('');
@@ -312,29 +417,37 @@
         function toggleComprado(idArticulo) {
             const isChecked = document.getElementById(`chk-${idArticulo}`).checked;
             document.getElementById(`card-${idArticulo}`).classList.toggle('comprado', isChecked);
-            document.getElementById(`price-ctrl-${idArticulo}`).style.display = isChecked ? 'flex' : 'none';
+            const controls = document.getElementById(`price-ctrl-${idArticulo}`);
+            controls.style.display = isChecked ? 'flex' : 'none';
+            if (isChecked) setTimeout(() => document.getElementById(`precio-${idArticulo}`).focus(), 50);
         }
 
         async function concluirCompra() {
             const itemsProcesar = dbDetalleLista.filter(item => {
                 const chk = document.getElementById(`chk-${item.ID_Articulo}`);
                 const input = document.getElementById(`precio-${item.ID_Articulo}`);
-                if (chk && chk.checked && input && input.value) { item.precio_actual = parseFloat(input.value); return true; }
-                return false;
+                if (chk && chk.checked && input && input.value) { 
+                    item.precio_actual = parseFloat(input.value); 
+                    item.Comprado = true; 
+                    return true; 
+                } return false;
             });
-            if (itemsProcesar.length === 0) return;
+            if (itemsProcesar.length === 0) return alert("Selecciona y asigna precio a los productos.");
+            
             const payload = itemsProcesar.map(item => ({ id_articulo: item.ID_Articulo, id_lista: item.ID_Lista, cantidad: item.Cantidad_Planificada, precio: item.precio_actual }));
             
-            document.getElementById('sync-status').innerText = "Procesando...";
+            guardarCacheLocal(); cambiarVista('view-dashboard');
+            document.getElementById('sync-status').innerText = "Grabando en Sheets...";
+            
             try {
-                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'sincronizar_compra_batch', data: payload, token: API_TOKEN }) });
-                initApp(); cambiarVista('view-dashboard');
-            } catch (e) { document.getElementById('sync-status').innerText = "Error ⚠"; }
+                await invocarBackend({ action: 'sincronizar_compra_batch', data: payload });
+                iniciarSistemaAutenticado(); 
+            } catch (e) { 
+                syncQueue.push(...payload); localStorage.setItem('syncQueue', JSON.stringify(syncQueue));
+                document.getElementById('sync-status').innerText = "Transacción Guardada Offline ⚠"; 
+            }
         }
 
-        // ==========================================
-        // MÓDULO C: INVENTARIO MANUAL
-        // ==========================================
         function abrirModuloInventario() {
             const container = document.getElementById('inventario-manual-container');
             container.innerHTML = dbInventario.map(item => `
@@ -356,21 +469,22 @@
         }
 
         async function sincronizarInventarioManual() {
-            const payload = dbInventario.map(item => ({
-                id: item.ID_Articulo,
-                cant: parseFloat(document.getElementById(`inv-cant-${item.ID_Articulo}`).value),
-                nivel: document.getElementById(`inv-nivel-${item.ID_Articulo}`).value
-            }));
+            const payload = dbInventario.map(item => {
+                const nuevaCant = parseFloat(document.getElementById(`inv-cant-${item.ID_Articulo}`).value);
+                const nuevoNivel = document.getElementById(`inv-nivel-${item.ID_Articulo}`).value;
+                item.Existencia_Cuantitativa = nuevaCant; item.Nivel_Cualitativo = nuevoNivel;
+                return { id: item.ID_Articulo, cant: nuevaCant, nivel: nuevoNivel };
+            });
             
+            guardarCacheLocal(); cambiarVista('view-dashboard');
             document.getElementById('sync-status').innerText = "Guardando Inventario...";
-            cambiarVista('view-dashboard');
             try {
-                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'actualizar_inventario_manual', data: payload, token: API_TOKEN }) });
-                initApp();
-            } catch(e) { document.getElementById('sync-status').innerText = "Error ⚠"; }
+                await invocarBackend({ action: 'actualizar_inventario_manual', data: payload });
+                iniciarSistemaAutenticado();
+            } catch(e) { document.getElementById('sync-status').innerText = "Guardado Localmente ⚠"; }
         }
 
-        window.onload = initApp;
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW Falló:', e))); }
     </script>
 </body>
 </html>
